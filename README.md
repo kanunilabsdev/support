@@ -8,6 +8,16 @@ that stay responsive at a million rows.
 - **Pricing** — <https://www.kanunilabs.com/pricing>
 - **Changelog** — [CHANGELOG.md](CHANGELOG.md) · also at <https://www.kanunilabs.com/changelog>
 
+### DataGrid
+
+[![KanuniLabs DataGrid for React in action — scrolling, filtering and editing a million rows](https://www.kanunilabs.com/npm/datagrid-react.gif)](https://www.kanunilabs.com/playground/datagrid)
+
+### PivotGrid
+
+[![KanuniLabs PivotGrid for React in action — drag-and-drop pivoting with Web Worker aggregation](https://www.kanunilabs.com/npm/pivotgrid-react.gif)](https://www.kanunilabs.com/playground/pivotgrid)
+
+Both clips are the real components — [drive them yourself in the playground](https://www.kanunilabs.com/playground), no signup, no install.
+
 ## What this repository is
 
 A place to **report bugs and request features**, and to follow releases.
