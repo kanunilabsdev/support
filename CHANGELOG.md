@@ -10,6 +10,24 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## PivotGrid v1.0.6 — August 18, 2026
+
+_npm page and metadata polish — no code changes._
+
+### Changed
+
+- The npm page opens with an animated demo of the component instead of a static screenshot.
+- Package metadata now links the public issue tracker at github.com/kanunilabsdev/support — bugs and feature requests no longer require an account on our site.
+
+## DataGrid v1.0.2 — August 18, 2026
+
+_npm page and metadata polish — no code changes._
+
+### Changed
+
+- The npm page opens with an animated demo of the component instead of a static screenshot.
+- Package metadata now links the public issue tracker at github.com/kanunilabsdev/support — bugs and feature requests no longer require an account on our site.
+
 ## PivotGrid v1.0.5 — August 16, 2026
 
 _The Web Worker setup step is gone._

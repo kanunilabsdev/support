@@ -1,0 +1,55 @@
+KanuniLabs Community License
+Version 1.0
+
+Copyright (c) 2024-present KanuniLabs. All rights reserved.
+
+This package (the "Software") is made available free of charge, but it is
+proprietary software and is NOT open source. By installing or using the
+Software you agree to these terms.
+
+1. LICENSE GRANT
+   KanuniLabs grants you a worldwide, royalty-free, non-exclusive license to:
+   (a) install and use the Software as a dependency of your applications,
+       including commercial applications; and
+   (b) reproduce and distribute the Software solely as an incorporated,
+       compiled part of such applications.
+
+2. RESTRICTIONS
+   You may NOT:
+   (a) modify, adapt, translate, or create derivative works of the Software;
+   (b) decompile, disassemble, deobfuscate, or otherwise attempt to derive
+       the source code of the Software, except, and only to the extent,
+       applicable law expressly permits notwithstanding this limitation;
+   (c) distribute, publish, sublicense, sell, rent, or lease the Software on
+       its own, or as part of any toolkit, component, library, or product
+       that competes with KanuniLabs products;
+   (d) remove, obscure, or alter any copyright, trademark, or other
+       proprietary notice.
+
+3. OWNERSHIP
+   The Software is licensed, not sold. KanuniLabs retains all right, title,
+   and interest in and to the Software, including all intellectual property
+   rights. No rights are granted except as expressly stated herein.
+
+4. ENTERPRISE FEATURES
+   Certain features require a separate paid license
+   (@kanunilabs/pivotgrid-react-enterprise). This license grants no right to
+   those features.
+
+5. NO WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+6. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL KANUNILABS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
+   FROM OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+7. TERMINATION
+   This license terminates automatically if you breach any term. Upon
+   termination you must cease all use and distribution of the Software.
+
+For commercial licensing, source access, or other arrangements, contact
+licensing@kanunilabs.com.
