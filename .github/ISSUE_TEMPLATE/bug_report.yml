@@ -1,0 +1,95 @@
+name: Bug report
+description: Something in a KanuniLabs component behaves incorrectly.
+labels: ['bug', 'needs triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        > [!WARNING]
+        > This issue will be **public and permanently indexed**. Do not paste a
+        > licence key, an `.npmrc`, registry credentials, an invoice, or real
+        > customer data. Anything tied to your account belongs in a
+        > [dashboard ticket](https://www.kanunilabs.com/dashboard) instead.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - DataGrid
+        - PivotGrid
+        - Both / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Package and version
+      description: The exact version from your lockfile — "latest" does not identify a build.
+      placeholder: '@kanunilabs/datagrid-react@1.0.1'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: edition
+    attributes:
+      label: Edition
+      options:
+        - Community (free, public npm)
+        - Enterprise (private registry)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: input
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: >
+        A StackBlitz or CodeSandbox link. Community packages install from public
+        npm, so a reproduction needs no licence. Enterprise-only behaviour cannot
+        be reproduced publicly — describe the configuration instead and we will
+        reproduce it here.
+      placeholder: https://stackblitz.com/edit/...
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: React version, bundler, browser, operating system.
+      placeholder: |
+        React 19.0.0
+        Vite 6 / Next.js 15 / webpack 5
+        Chrome 141, Windows 11
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      description: Any errors or warnings. Redact anything identifying before pasting.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues, including closed ones.
+          required: true
+        - label: I reproduced this on the latest version of the package.
+          required: true
+        - label: This report contains no licence key, credentials or customer data.
+          required: true

@@ -1,0 +1,25 @@
+# Blank issues are disabled on purpose. The two templates below both carry the
+# "do not paste your licence key" warning, and a blank issue would skip it —
+# which is exactly the issue that ends up with credentials in it.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Licence key, invoice, seats or account
+    url: https://www.kanunilabs.com/dashboard
+    about: Anything tied to your account is private. Open a ticket from your dashboard instead — public issues are indexed forever.
+
+  - name: Security vulnerability
+    url: https://github.com/kanunilabsdev/support/blob/main/SECURITY.md
+    about: Report privately by email. Never in a public issue.
+
+  - name: Documentation
+    url: https://www.kanunilabs.com/docs
+    about: API reference, guides and framework setup for both components.
+
+  - name: Live demos
+    url: https://www.kanunilabs.com/playground
+    about: Every feature running in the browser — often faster than describing the behaviour you expect.
+
+  - name: Pre-sales question
+    url: https://www.kanunilabs.com/contact
+    about: Pricing, licensing terms, procurement.
