@@ -37,9 +37,13 @@ our site to use, and release notes you can watch.
 | [`@kanunilabs/pivotgrid-core`](https://www.npmjs.com/package/@kanunilabs/pivotgrid-core) | public npm | Community |
 | [`@kanunilabs/pivotgrid-react`](https://www.npmjs.com/package/@kanunilabs/pivotgrid-react) | public npm | Community |
 | `@kanunilabs/pivotgrid-react-enterprise` | private registry | Enterprise |
+| [`@kanunilabs/pivotgrid`](https://www.npmjs.com/package/@kanunilabs/pivotgrid) | public npm | Community |
+| `@kanunilabs/pivotgrid-enterprise` | private registry | Enterprise |
 | [`@kanunilabs/datagrid-core`](https://www.npmjs.com/package/@kanunilabs/datagrid-core) | public npm | Community |
 | [`@kanunilabs/datagrid-react`](https://www.npmjs.com/package/@kanunilabs/datagrid-react) | public npm | Community |
 | `@kanunilabs/datagrid-react-enterprise` | private registry | Enterprise |
+| [`@kanunilabs/datagrid`](https://www.npmjs.com/package/@kanunilabs/datagrid) | public npm | Community |
+| `@kanunilabs/datagrid-enterprise` | private registry | Enterprise |
 
 The Community packages are free and need no licence key. Enterprise packages
 ship from a private registry with per-customer credentials — see

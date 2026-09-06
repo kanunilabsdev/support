@@ -33,8 +33,9 @@ Software you agree to these terms.
 
 4. ENTERPRISE FEATURES
    Certain features require a separate paid license
-   (@kanunilabs/pivotgrid-react-enterprise). This license grants no right to
-   those features.
+   (@kanunilabs/pivotgrid-react-enterprise, @kanunilabs/pivotgrid-enterprise,
+   @kanunilabs/datagrid-react-enterprise or @kanunilabs/datagrid-enterprise).
+   This license grants no right to those features.
 
 5. NO WARRANTY
    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
