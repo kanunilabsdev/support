@@ -10,9 +10,23 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.2.1 — September 6, 2026
+
+`@kanunilabs/datagrid-enterprise@1.2.1` · `@kanunilabs/datagrid-react-enterprise@1.1.2` · `@kanunilabs/licensing@1.1.2`
+
+_Enterprise packages republished on licensing 1.1.2; the JavaScript licence badge follows fullscreen._
+
+### Fixed
+
+- In the JavaScript Enterprise package the unlicensed badge stayed on the document body while the grid was fullscreen — where the browser does not paint it, so the notice silently vanished. It now mounts inside the fullscreen element and follows the toggle both ways.
+
+### Changed
+
+- Both Enterprise packages pin `@kanunilabs/licensing` 1.1.2, whose LICENSE names all four Enterprise packages. The verifier code is unchanged; the republish keeps a customer who installs both products on one copy of the licensing module, as the 2026-08-26 release promised.
+
 ## PivotGrid v1.3.0 — September 6, 2026
 
-`@kanunilabs/pivotgrid-core@1.3.0` · `@kanunilabs/pivotgrid@1.0.0` · `@kanunilabs/pivotgrid-enterprise@1.0.0` · `@kanunilabs/pivotgrid-react@1.2.0` · `@kanunilabs/pivotgrid-react-enterprise@1.1.2`
+`@kanunilabs/pivotgrid-core@1.3.0` · `@kanunilabs/pivotgrid@1.0.0` · `@kanunilabs/pivotgrid-enterprise@1.0.1` · `@kanunilabs/pivotgrid-react@1.2.0` · `@kanunilabs/pivotgrid-react-enterprise@1.1.3` · `@kanunilabs/licensing@1.1.2`
 
 _PivotGrid without React — two new packages — and four engine options that were accepted and ignored now work._
 
@@ -32,6 +46,7 @@ _PivotGrid without React — two new packages — and four engine options that w
 - Under `pointer: coarse` the interactive controls get 40px touch targets (the small chip controls through a larger hit area), and `touch-action` is set so a drag does not also scroll the page.
 - Exported sheets name their totals in the grid language: the export helpers take the translated Grand Total and Total labels instead of hardcoding English.
 - `@kanunilabs/pivotgrid-react-enterprise` is republished on this core; its node context menu delegates to the Community one.
+- The two Enterprise packages went out twice the same day: first as 1.0.0 and 1.1.2, then as 1.0.1 and 1.1.3 re-pinned to `@kanunilabs/licensing` 1.1.2, whose LICENSE now names all four Enterprise packages — the JavaScript one included. The verifier itself is unchanged.
 
 ### Fixed
 
