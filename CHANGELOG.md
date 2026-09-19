@@ -10,6 +10,36 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.3.0 — September 19, 2026
+
+`@kanunilabs/datagrid-core@1.2.1` · `@kanunilabs/datagrid@1.2.1` · `@kanunilabs/datagrid-react@1.1.2` · `@kanunilabs/datagrid-enterprise@1.3.0` · `@kanunilabs/datagrid-react-enterprise@1.2.0` · `@kanunilabs/licensing@1.2.0`
+
+_Paste and the fill handle respect cell permissions; paste lands on the focused cell; paid licence keys no longer expire into a watermark._
+
+### Fixed
+
+- Paste and the fill handle wrote into cells the user could not edit. `editable: false` and the `allowUpdating` predicate held for the cell editor and for cut, but Ctrl+V and a fill-handle drag went straight through them. Refused cells are now skipped and the rest of the gesture is written, the same rule cut already followed.
+- With no rectangle selected, Ctrl+V pasted into the first row and first column of the grid. A bare arrow key collapses the rectangle, so arrowing down a column and pasting wrote far from where the user was. Paste now lands on the focused cell, or on the cell a context menu was opened over.
+- In React, Ctrl+V and Ctrl+X still worked with `editing.range: false`. Cut and paste — keyboard and context menu — now follow the same switch in both renderers.
+- The fill handle treated anything `Number()` could convert as a number: two blank cells filled with zeros, two dates filled with epoch-millisecond numbers, `true`/`false` became 1/0. Only real numbers form a series now; everything else repeats as a pattern.
+- Community: `pagination: { pageSize: 25 }` without `enabled` left the grid unpaginated. A pagination object now turns paging on unless it says `enabled: false`.
+- Community: on touch devices the toolbar, pager and header-filter buttons get 40px touch targets, and the header filter button — revealed only on hover until now, so unreachable without a mouse — is always visible.
+
+### Changed
+
+- Paid Enterprise licence keys are now issued as perpetual keys for the builds released during the paid period: when a subscription ends, the version you already ship keeps working without a watermark. Each Enterprise package checks the key against its own release date.
+- `useGridEditing` takes a `range` option, and `paste()` on both renderers takes an optional target cell — the context menu passes the cell it was opened over.
+
+## PivotGrid v1.1.4 — September 19, 2026
+
+`@kanunilabs/pivotgrid-react-enterprise@1.1.4` · `@kanunilabs/pivotgrid-enterprise@1.0.2` · `@kanunilabs/licensing@1.2.0`
+
+_Paid licence keys no longer expire into a watermark._
+
+### Changed
+
+- Paid Enterprise licence keys are now issued as perpetual keys for the builds released during the paid period: when a subscription ends, the version you already ship keeps working without a watermark. Both Enterprise packages pin `@kanunilabs/licensing` 1.2.0, the same copy as the DataGrid Enterprise packages.
+
 ## DataGrid v1.2.1 — September 6, 2026
 
 `@kanunilabs/datagrid-enterprise@1.2.1` · `@kanunilabs/datagrid-react-enterprise@1.1.2` · `@kanunilabs/licensing@1.1.2`
