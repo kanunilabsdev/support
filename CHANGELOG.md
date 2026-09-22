@@ -10,6 +10,56 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.4.0 — September 22, 2026
+
+`@kanunilabs/datagrid-core@1.3.0` · `@kanunilabs/datagrid@1.3.0` · `@kanunilabs/datagrid-react@1.2.0` · `@kanunilabs/datagrid-enterprise@1.4.0` · `@kanunilabs/datagrid-react-enterprise@1.3.0` · `@kanunilabs/licensing@1.3.0`
+
+_Licence keys verify on plain-HTTP intranet pages and the badge says why a key failed; Turkish-aware search; a font for PDF export; the CSV separator follows the locale._
+
+### Added
+
+- Licence keys now verify on pages served over plain `http://` — an intranet host, an IP address. Browsers only offer `crypto.subtle` on HTTPS and `localhost`, so such a page marked a valid key “Invalid license”. Where WebCrypto is missing, a bundled JavaScript implementation of the same ECDSA P-256 check runs instead: same verdict, the signature is always verified, and it loads only on those pages (its own chunk in bundler builds, built into the script-tag builds).
+- The licence badge says why a key failed: expired, does not cover this version, not valid for this domain, revoked, malformed, invalid signature, or “Browser cannot verify the license (HTTPS required)” — in the grid’s language, all twelve; in Arabic it sits on the left and reads right to left. The licence state carries a matching `reasonCode` for code that wants to act on it.
+- `selection.rowClick` (`replace` or `toggle`): in checkbox mode a row click still toggles by default; `replace` makes it select only that row.
+- PDF export takes a `font` — a TrueType file embedded in the document. The built-in PDF fonts cannot draw letters outside Latin-1 (ş and İ came out as “_” and “0”); without a `font`, such text now logs a warning instead of going wrong silently.
+- `setExportDefaults` takes a format — CSV, Excel or PDF — where it set Excel defaults only.
+- `theme` accepts your own theme’s name: `theme="acme"` puts `kanuni-datagrid-theme-acme` on the grid, its wrapper and every popup.
+
+### Changed
+
+- Search, text filters, the header-filter search, highlighting and the lookup editors treat İ, I, ı and i as one letter. Lower-casing “İ” produced “i” plus a combining dot, so “istanbul” never matched “İSTANBUL”.
+- Search also matches what a cell shows — `valueFormatter` and `dateFormat` output — not only the stored value.
+- The CSV separator follows the locale: `;` for Turkish, German, French, Spanish, Italian, Portuguese, Russian and Arabic, where spreadsheet programs expect it; `,` elsewhere.
+- The licence console notice names the product that prints it — a page with only a DataGrid said “KanuniLabs PivotGrid” — and prints once per product, not once per grid. With no key at all the console stays quiet; the badge is the notice.
+- Types: `theme` is `GridThemeName` (`GridTheme | (string & {})`) — passing a value is unaffected, but code that reads the prop’s type into a `GridTheme` should use `GridThemeName`. `GridDictionary` has eight new licence keys: a partial `messages` object needs nothing, a dictionary typed as the full `GridDictionary` needs them.
+
+### Fixed
+
+- The React Enterprise bundle imported `recharts` at its top, so an app without it could not build. It is loaded when the chart panel opens, and without it the panel says so.
+- A valid key could show the licence badge for a moment while it was being checked. Nothing is shown until the check has finished.
+- In React, changing `selection.mode` after the first render had no effect.
+- The `fitCells` auto-size could run before any row was on screen, or not at all when the data was there at mount; it now runs once the first data cells have rendered. Cells holding markup (badges, chips) are measured as laid out rather than by their text, so they are no longer cut short.
+- React screen-reader announcements were always in English; they come from the dictionary.
+- With large data (the worker path), a cell edited to a value not seen before could not be found by search, and sorting read outside its cached order.
+- React date and lookup editor popups did not receive the theme class.
+- A Vite production build stands an empty module in for an uninstalled optional dependency, so a missing `exceljs` or `jspdf` failed with a cryptic error. The loaders now check what they received.
+
+## PivotGrid v1.4.0 — September 22, 2026
+
+`@kanunilabs/pivotgrid-core@1.4.0` · `@kanunilabs/pivotgrid@1.0.1` · `@kanunilabs/pivotgrid-react@1.2.1` · `@kanunilabs/pivotgrid-enterprise@1.1.0` · `@kanunilabs/pivotgrid-react-enterprise@1.2.0` · `@kanunilabs/licensing@1.3.0`
+
+_Licence keys verify on plain-HTTP intranet pages, and the badge says why a key failed._
+
+### Added
+
+- Licence keys now verify on pages served over plain `http://`. Browsers only offer `crypto.subtle` on HTTPS and `localhost`; where it is missing, a bundled JavaScript implementation of the same ECDSA P-256 check runs instead — same verdict, the signature is always verified, loaded only on those pages.
+- The licence badge says why a key failed — expired, not valid for this domain, revoked, malformed, invalid signature, or “Browser cannot verify the license (HTTPS required)” — in the grid’s language, all twelve; right to left in Arabic. The licence state carries a matching `reasonCode`.
+
+### Changed
+
+- The licence console notice names the product that prints it and prints once per product; with no key at all the console stays quiet.
+- `PivotDictionary` has eight new licence keys: a partial `dictionary` needs nothing, a dictionary typed as the full `PivotDictionary` needs them. The Community packages are republished with them and pinned to the same `pivotgrid-core`, so a page never loads two copies.
+
 ## DataGrid v1.3.0 — September 19, 2026
 
 `@kanunilabs/datagrid-core@1.2.1` · `@kanunilabs/datagrid@1.2.1` · `@kanunilabs/datagrid-react@1.1.2` · `@kanunilabs/datagrid-enterprise@1.3.0` · `@kanunilabs/datagrid-react-enterprise@1.2.0` · `@kanunilabs/licensing@1.2.0`
