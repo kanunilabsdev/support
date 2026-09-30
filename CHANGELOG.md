@@ -10,6 +10,40 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.4.1 — September 30, 2026
+
+`@kanunilabs/datagrid-core@1.4.0` · `@kanunilabs/datagrid@1.3.1` · `@kanunilabs/datagrid-react@1.2.1` · `@kanunilabs/datagrid-enterprise@1.4.1` · `@kanunilabs/datagrid-react-enterprise@1.3.1`
+
+_Saving fixes: a refused save is always shown, a new row is never lost or inserted twice, and one cancel no longer stops the grid from sorting._
+
+### Fixed
+
+- After a single cancel on large data, the grid stopped sorting and filtering until it was destroyed: every later request came back as cancelled. A cancel now reaches only the work that was already in flight.
+- With `crud` handlers present, a change whose handler was missing was reported as saved and dropped — a row added without `crud.insert` never reached the server and vanished on reload, and a deleted row came back. Such a save is now refused before anything is sent, the changes stay pending, and the console names the missing handler.
+- Two quick edits in cell mode could send the same change twice, and insert a new row twice. Saves now run one after another, each sending only what the previous one did not.
+- In batch mode, a validation rule that reads a neighbouring column saw that column’s stored value instead of the one the user had just typed. Rules now see the row as edited.
+- In cell mode, a save refused by a rule or by the server showed nothing, so the user believed it was saved. The grid now shows the reason, in the same dialog Save already used, and puts the user on the cell.
+
+### Added
+
+- `onAutoSaveFailed` on the editing engine options, for apps that drive the engine themselves and want to hear about saves the grid starts on its own.
+
+## PivotGrid v1.5.0 — September 30, 2026
+
+`@kanunilabs/pivotgrid-core@1.5.0` · `@kanunilabs/pivotgrid@1.0.2` · `@kanunilabs/pivotgrid-react@1.2.2` · `@kanunilabs/pivotgrid-enterprise@1.1.1` · `@kanunilabs/pivotgrid-react-enterprise@1.2.1`
+
+_A field declared as text is never shown as a date, the React grid stays inside its container, and a JSON column named __proto__ is no longer blank._
+
+### Fixed
+
+- A field whose `dataType` is `string` and whose values look like “2009-12” was shown as “December 1, 2009” in the headers and “Dec 1” on the chart axis — a month read as a day. The declared type now decides: text is shown as written, `date` fields are formatted as before. Screen and export now agree.
+- The React grid laid itself out against the nearest positioned ancestor on the page, so it could spread past its container and cover the component below it. It now fills exactly the element it is given; in a container with no height it takes the height of its content.
+- Importing JSON with a top-level `__proto__` key produced a column that stayed blank. The key is renamed safely before the columns are discovered, as the CSV and XML imports already did.
+
+### Added
+
+- `formatDimensionValue` in `@kanunilabs/pivotgrid-core`: the one rule the grid, the charts and the export use to show a row or column value.
+
 ## DataGrid v1.4.0 — September 22, 2026
 
 `@kanunilabs/datagrid-core@1.3.0` · `@kanunilabs/datagrid@1.3.0` · `@kanunilabs/datagrid-react@1.2.0` · `@kanunilabs/datagrid-enterprise@1.4.0` · `@kanunilabs/datagrid-react-enterprise@1.3.0` · `@kanunilabs/licensing@1.3.0`
