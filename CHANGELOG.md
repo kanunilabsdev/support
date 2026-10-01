@@ -10,6 +10,34 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.4.2 — October 1, 2026
+
+`@kanunilabs/datagrid-core@1.4.1` · `@kanunilabs/datagrid@1.3.2` · `@kanunilabs/datagrid-react@1.2.2` · `@kanunilabs/datagrid-enterprise@1.4.2` · `@kanunilabs/datagrid-react-enterprise@1.3.2`
+
+_A search typed in parts prepares the data once, and a validation message is visible while you edit._
+
+### Fixed
+
+- On large data the first search prepares the text it searches, which takes a few seconds. Typed in parts, each new part started the same preparation again alongside the first, so "Preparing data…" stayed up longer and its percentage went backwards. The preparation now runs once, and Cancel still stops it. On our Online Retail demo (1,067,371 rows), a search typed in three parts went from 8.2 s of preparation to 2.3 s on the same machine.
+- React Enterprise: a validation message raised while editing a cell was rendered but hidden under the cell and the next row, so the user saw a red underline and no reason. The message now shows.
+
+## PivotGrid v1.6.0 — October 1, 2026
+
+`@kanunilabs/pivotgrid-core@1.6.0` · `@kanunilabs/pivotgrid@1.1.0` · `@kanunilabs/pivotgrid-react@1.3.0` · `@kanunilabs/pivotgrid-enterprise@1.2.0` · `@kanunilabs/pivotgrid-react-enterprise@1.3.0`
+
+_A filter on a field in the filter area is applied again, and column widths have a documented option._
+
+### Fixed
+
+- A field placed only in the filter area did not filter: with values selected, through `filterValues` or by the user, every total still included the excluded rows. The filter now applies, whether the values come with the initial fields, are picked after the grid is up, or survive a remount over the same data.
+- React: scrolled far to the right with wide or resized data columns, some visible columns were drawn empty. The visible range is now worked out from the real column widths.
+- React: a data column removed from the width map kept its old width until the grid was remounted. It now returns to the default straight away.
+
+### Added
+
+- `defaultColumnWidths: { rowHeader, data }` on `BasePivotGrid`, `EnterprisePivotGrid` and `createPivotGrid`: the starting width of every row-header column and every data column (defaults 150 and 95). A width the user drags still wins.
+- `setColumnWidths` on the React `ref`. The keys of the width map, `row-<i>` and `leaf-<i>`, are now documented.
+
 ## DataGrid v1.4.1 — September 30, 2026
 
 `@kanunilabs/datagrid-core@1.4.0` · `@kanunilabs/datagrid@1.3.1` · `@kanunilabs/datagrid-react@1.2.1` · `@kanunilabs/datagrid-enterprise@1.4.1` · `@kanunilabs/datagrid-react-enterprise@1.3.1`
