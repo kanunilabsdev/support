@@ -10,6 +10,63 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.5.0 — October 5, 2026
+
+`@kanunilabs/datagrid-core@1.5.0` · `@kanunilabs/datagrid@1.4.0` · `@kanunilabs/datagrid-react@1.3.0` · `@kanunilabs/datagrid-enterprise@1.5.0` · `@kanunilabs/datagrid-react-enterprise@1.4.0`
+
+_Tree data from paths, nested arrays or a server; calendar grouping and group selection; relative date filters; many more chart types; and a deferred select-all that reports what it selected._
+
+### Added
+
+- Tree data in two more shapes. `tree.getDataPath` takes each row's place as a list of names; a level with no row of its own becomes a folder row that opens, closes and sorts like any node but is not a record (it cannot be selected or edited). `tree.childrenField` reads nested `children` arrays; edits still write to your objects.
+- Server-side tree: with a remote `DataSource`, `tree.hasChildren` loads the tree level by level through `load({ parentKey })`. Opening everything loads only the levels that come into view.
+- `groupInterval: 'day' | 'week' | 'month' | 'quarter' | 'year'` on a date column groups by calendar unit, with headers in the grid's language.
+- `grouping.display: 'aligned'` lays a group row out as cells: the group's name in the first column and each group summary under its own column.
+- A checkbox on each group header selects every row under the group, open or closed (`toggleGroupSelection`, `setGroupSelected`, `getGroupSelectionState`, `getGroupRowKeys`).
+- Relative date filters: a `period` condition such as `{ period: 'thisMonth' }` or `{ period: 'lastDays', days: 7 }` is worked out each time the filter runs, so a view saved as "this month" still means this month next week. The filter row accepts period names in the grid's language or in English.
+- `expandAllDetails()`, the `treeRowToggled` and `detailToggled` events, and the tree's open rows in the saved view state.
+- Keyboard: Left and Right open and close tree nodes and groups. Enterprise: Shift+arrow and Ctrl/Cmd+Shift+arrow extend a cell range, and the statistics bar announces it to screen readers.
+- Enterprise charts: stacked and 100% stacked; a Format editor (title, axis titles, legend position, data labels, a logarithmic value axis); X-Y scatter and bubble charts with one point per row; waterfall, funnel, treemap, heatmap, box plot, radar and range bar.
+- Enterprise charts: the chart is now state you can read and restore (`GridChartState`, the `chartOpened`, `chartChanged` and `chartClosed` events, saved with the view), with an API in React too (`charting.apiRef`). Images export as PNG or JPEG at a chosen size, or as a data URL.
+- Enterprise sparklines: `highlight` (first, lowest, highest point), `color`, `negativeColor` and `tooltip`. A gap in the series now stays a gap instead of joining its neighbours.
+- Enterprise: `getAiSchema`, `getAiState` and `applyAiState` describe the grid's state as a JSON Schema for a language model and apply its answer, keeping the valid part and listing the rest. No model or network call is included.
+
+### Fixed
+
+- Deferred select-all: `selectionChanged` reported no rows and a count of 0, and after a row was excluded it reported that row as the selection. It now reports the selected rows and their count. The count also no longer subtracts excluded rows that the current filter hides, and "export selected rows only" no longer writes the excluded rows.
+- Server-side grouping showed one group and loading rows on the first screen until the user scrolled. The rest of the first screen now loads straight away.
+- JavaScript Enterprise with a remote data source of more than 100 rows threw on its first paint and drew no rows. Rows not yet loaded now show as loading.
+- Enterprise: Shift+click after a drag did not extend the cell range.
+- React Enterprise: with `editing={{ enabled: false }}`, sparkline columns showed the raw array instead of the chart.
+- A remote `DataSource` with `tree` but no `hasChildren` showed a flat list without saying so. It now warns once when the grid is created.
+
+## PivotGrid v1.7.0 — October 5, 2026
+
+`@kanunilabs/pivotgrid-core@1.7.0` · `@kanunilabs/pivotgrid@1.2.0` · `@kanunilabs/pivotgrid-react@1.4.0` · `@kanunilabs/pivotgrid-enterprise@1.3.0` · `@kanunilabs/pivotgrid-react-enterprise@1.4.0`
+
+_Live updates without a rebuild, a pivot your server aggregates, a trend line in each row, many more chart types, and custom summaries that really run._
+
+### Added
+
+- Live updates: `applyTransaction({ add, update, remove })` with a `rowKey`, on the controller, `createPivotGrid` and the React `ref`. Only the changed rows are processed and only the groups they touch are summed again, with the same result as a full rebuild. Measured in Node on 1,000,000 rows: about 17 ms in the worker per update, against 230-290 ms for a rebuild.
+- Enterprise: server-side pivot. `serverSource` (built with `pivotServerSource({ load, loadFieldValues })`) lets your server do the aggregating; only totals reach the browser, and a closed group is not asked for. `rollupInMemory` is the reference implementation.
+- Enterprise: `rowSparkline` draws each row's values across the visible columns as a small line or bar chart in its grand total cell.
+- Enterprise: `getPivotAiSchema`, `getPivotAiState` and `applyPivotAiState` describe the pivot layout as a JSON Schema for a language model and apply its answer. The React `ref` now has `getController()`.
+- Enterprise charts: stacked and 100% stacked; a Format editor; X-Y and bubble charts; a logarithmic value axis; donut, waterfall, funnel, treemap, heatmap, range bar and sunburst. The chart type formerly named Scatter is now called Dot chart; saved charts still open.
+- Enterprise charts: colours follow the grid's theme (`chartColors`, React `palette`); clicking a category filters the pivot (`chartCrossFilter`, React `onCategoryClick`); chart state and events (`getChartState`, `setChartState`); image export as PNG, SVG or JPEG, at a chosen size or as a data URL. In React, a second value axis, hiding a series from the legend and `maxSeries`.
+
+### Changed
+
+- `summaryType: 'custom'` now runs your `calculateCustomSummary`, or the aggregator you registered by name. Before, every custom measure silently showed a sum, so numbers from such a measure will change. An unknown aggregator name is now reported as an engine error.
+- `controller.on('fieldMove', ...)` now fires, and its `newIndex` is where the field actually landed. Dropping a field on its own place no longer reports a move.
+- Fourteen chart panel captions left the shared `PivotDictionary` type; the Enterprise chart panel carries them. Your own messages can still rename them.
+
+### Fixed
+
+- React: moving the last column field into the rows made the row area's field chips disappear.
+- React charts: the points of a dot chart were not bound to any value, and a pie with one series was drawn in one colour.
+- `groupInterval: 'numeric'` and `'custom'` did nothing without saying so. They are now reported through `onError`.
+
 ## DataGrid v1.4.2 — October 1, 2026
 
 `@kanunilabs/datagrid-core@1.4.1` · `@kanunilabs/datagrid@1.3.2` · `@kanunilabs/datagrid-react@1.2.2` · `@kanunilabs/datagrid-enterprise@1.4.2` · `@kanunilabs/datagrid-react-enterprise@1.3.2`
@@ -388,7 +445,7 @@ _First public beta of the React packages._
 - Enterprise: calculated fields, prefilter builder, drill-down, chart integration.
 - 12 locales with full RTL support.
 - Excel & PDF export (streamed off the main thread).
-- Offline license verification with online revocation and a customer dashboard.
+- Offline license verification and a customer dashboard.
 
 ## PivotGrid v0.9.0 — June 20, 2026
 
