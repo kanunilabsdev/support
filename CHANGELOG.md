@@ -10,6 +10,39 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.6.0 — October 6, 2026
+
+`@kanunilabs/datagrid-core@1.6.0` · `@kanunilabs/datagrid@1.5.0` · `@kanunilabs/datagrid-react@1.4.0` · `@kanunilabs/datagrid-enterprise@1.6.0` · `@kanunilabs/datagrid-react-enterprise@1.5.0`
+
+_Excel exports that Excel opens past a million rows, with group subtotals and real dates; sticky group headers; fill from the keyboard._
+
+### Fixed
+
+- Excel export: a sheet holds 1,048,576 rows, header included, and nothing counted them. One row more and Excel refused the file, or repaired it by deleting every row past the limit, with only a line in a dialog to say so. Rows past the limit now continue on "Data (2)", "Data (3)"…, each with the header, a filter and a frozen top row, so every row arrives in a file Excel opens. Measured in Excel: 1,067,371 rows open in about 6 s on two sheets.
+- Exports carry group subtotals. With `groupSummaries`, a group row exported only its label and count; each subtotal now sits under its own column, formatted as the grid shows it and written to Excel as a number. In CSV, Excel and PDF.
+- Excel export writes a date column as dates. An ISO string such as "2011-11-01", which is how a JSON API sends a date, was written as text that Excel's date filter and sort ignore; it is now a real date, as is an epoch number. A local-midnight `Date` no longer lands on the previous day in time zones east of UTC: Excel shows the calendar day and clock time the grid shows.
+- A date column with a `dateFormat` reads the same in CSV, PDF, copied cells and the filter checklist as it does in its cells, instead of the stored ISO string or a Date's long form.
+
+### Added
+
+- `grouping.stickyHeaders`: the headers of the groups you are scrolling through stay under the column header, outermost first, and the next group pushes them out. Off by default.
+- `maxRowsPerSheet` on Excel export, to start a new sheet sooner than Excel's limit.
+- Enterprise: Ctrl/Cmd+D fills down and Ctrl/Cmd+R fills right, copying the first row or column of the selected range, or the cell above or to the left of a single cell. They follow the same permissions as the fill handle and undo as one step.
+
+### Changed
+
+- The text of the grand total in an export now uses the grid's formatting, the same as the footer and the new group subtotals. A PDF totals row reads "$50.00" where it read "50".
+
+## PivotGrid v1.7.1 — October 6, 2026
+
+`@kanunilabs/pivotgrid-core@1.7.1` · `@kanunilabs/pivotgrid@1.2.1` · `@kanunilabs/pivotgrid-react@1.4.1` · `@kanunilabs/pivotgrid-enterprise@1.3.1` · `@kanunilabs/pivotgrid-react-enterprise@1.4.1`
+
+_The packages load under plain Node ESM._
+
+### Fixed
+
+- Importing a PivotGrid package as ESM in plain Node (server rendering, scripts, a test runner in a Node environment) failed with "Named export 'saveAs' not found", because of how the packages imported file-saver. Bundlers were not affected. Every package build now checks that its output loads this way.
+
 ## DataGrid v1.5.0 — October 5, 2026
 
 `@kanunilabs/datagrid-core@1.5.0` · `@kanunilabs/datagrid@1.4.0` · `@kanunilabs/datagrid-react@1.3.0` · `@kanunilabs/datagrid-enterprise@1.5.0` · `@kanunilabs/datagrid-react-enterprise@1.4.0`
