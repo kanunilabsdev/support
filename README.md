@@ -1,7 +1,10 @@
 # KanuniLabs — issues & release notes
 
-High-performance data components for React: a **PivotGrid** and a **DataGrid**
-that stay responsive at a million rows.
+A **free pivot table** for React and plain JavaScript, with a **data grid**
+alongside, that stays responsive at a million rows. The free edition needs no
+licence key and allows commercial use.
+
+- **Try it in your browser** — [a React pivot on a million rows](https://github.com/kanunilabsdev/pivotgrid-react-example), opens in StackBlitz with one click
 
 - **Docs** — <https://www.kanunilabs.com/docs>
 - **Live demos** — <https://www.kanunilabs.com/playground>
