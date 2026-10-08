@@ -10,6 +10,17 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## PivotGrid v1.7.2 — October 8, 2026
+
+`@kanunilabs/pivotgrid-core@1.7.2` · `@kanunilabs/pivotgrid@1.2.2` · `@kanunilabs/pivotgrid-react@1.4.2` · `@kanunilabs/pivotgrid-enterprise@1.3.2` · `@kanunilabs/pivotgrid-react-enterprise@1.4.2`
+
+_Wide pivots stop freezing on load; a partial layout no longer empties the grid._
+
+### Fixed
+
+- Sorting the row and column headers built a new locale comparer for every comparison, so a pivot with thousands of members froze for about half a second on load and on every re-sort. One comparer per locale is now reused: 5,000 members sort in 12–25 ms instead of 333–386 ms. The order is unchanged. The member filter list sorts the same way.
+- A `layout` that named only some options, such as `{ rowHeaderLayout: 'tree' }` or even `{}`, replaced the defaults instead of landing on them, and the grid drew no values. The options you leave out now come from the defaults. In the JavaScript and the React grid.
+
 ## DataGrid v1.6.0 — October 6, 2026
 
 `@kanunilabs/datagrid-core@1.6.0` · `@kanunilabs/datagrid@1.5.0` · `@kanunilabs/datagrid-react@1.4.0` · `@kanunilabs/datagrid-enterprise@1.6.0` · `@kanunilabs/datagrid-react-enterprise@1.5.0`
