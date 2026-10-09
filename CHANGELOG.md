@@ -10,6 +10,70 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.7.0 — October 9, 2026
+
+`@kanunilabs/datagrid-core@1.7.0` · `@kanunilabs/datagrid@1.6.0` · `@kanunilabs/datagrid-react@1.5.0` · `@kanunilabs/datagrid-enterprise@1.7.0` · `@kanunilabs/datagrid-react-enterprise@1.6.0`
+
+_Formulas, server-side data in the free edition, a separate group column, and much more for charts._
+
+### Added
+
+- Formulas. A column can be a spreadsheet formula over its row (`formula: '[Price] * [Qty]'`, Community); with `calculatedColumns` your users add, edit and remove their own from the column menu, with a live preview (Enterprise); and with `allowFormulas` a cell can hold `=A1*B2`, kept on the same cells through sorting and filtering (Enterprise). No `eval`, so it runs under a strict Content-Security-Policy.
+- Excel exports write calculated columns and cell formulas as live Excel formulas, and a column's `exportLink` makes its cells hyperlinks in Excel and PDF (Enterprise).
+- Master-detail details in Excel and PDF exports: each master row's detail table under it, from `masterDetail.export` (Enterprise).
+- A separate group column: `grouping.display: 'column'` puts the group names in their own column instead of a banner.
+- Charts: floating windows and several charts per grid, a chart in your own container (`charting.container`), detach and reattach, a chart from a selected cell range painted in the grid, text, label angle, grid and series line options, an axis label formatter, a calendar date format, `first` / `last` aggregations, a column's chart role, cross-filtering on several categories, and category selection from the keyboard (Enterprise).
+- Sparklines: horizontal bars, `[x, y]` and object data on a number or time axis, line and area styles, markers, value labels, your own colours and a multi-line tooltip.
+- Sorting: by magnitude (`absoluteSort`), the click cycle per column, and a hook after every sort.
+- Rows that cannot be selected (`selection.isRowSelectable`), numbered page buttons (`pagination.pageButtons`), and several cell ranges with Ctrl/Cmd (Enterprise).
+- Server-side data: rows that fail to load say so with a Retry button, `invalidate({ background: true })` refreshes without the loading overlay, and Expand all opens server groups as they arrive.
+- Saved views also keep footer aggregations, group footers, folded column bands and open server groups; selection, focus, scroll and cell ranges on request (`include`).
+- Accessibility: the grid name (`ariaLabel`), named tree and band toggles, and in the JavaScript grid keyboard access to headers, filters and menus and announced size and selection.
+
+### Changed
+
+- Loading rows from a server is now in the Community edition. Grouping on the server, a server tree and an export of the whole result stay Enterprise, and are not offered on a Community grid fed by a server.
+- A plain click on a chart category keeps the others visible, dimmed.
+- The loading overlay also shows while a slow recompute the grid itself started is running.
+
+### Fixed
+
+- A refresh of server data that failed emptied the grid: a flat grid turned every row into a Retry row and a server-grouped one collapsed to a single row. The rows now keep their last data.
+- `applyTransactionAsync` cancelled a remove and an add of the same row in one transaction instead of replacing the row.
+- Saved views were not written after collapsing a group or changing the page or page size, and a view restored onto a server-grouped grid while its first load ran could stall on one loading row.
+- The group panel's Expand all / Collapse all were English in every language.
+- The chart ignored an external filter on the Web Worker path.
+- In the JavaScript grid, Enter and Space did not press the numbered page buttons.
+
+## PivotGrid v1.8.0 — October 9, 2026
+
+`@kanunilabs/pivotgrid-core@1.8.0` · `@kanunilabs/pivotgrid@1.3.0` · `@kanunilabs/pivotgrid-react@1.5.0` · `@kanunilabs/pivotgrid-enterprise@1.4.0` · `@kanunilabs/pivotgrid-react-enterprise@1.5.0`
+
+_Value and label filters, live updates in batches, a histogram, and fewer pauses in React._
+
+### Added
+
+- Value and label filters: keep members by their totals or their names, from code or the header menu (Community); the AI state schema carries them (Enterprise).
+- `applyTransactionAsync`: a fast stream of updates is applied in batches instead of one recompute each.
+- Date grouping by ISO week, and percent of the parent row or column total.
+- A histogram chart, floating chart windows, several charts per grid, detach and reattach, and category selection from the keyboard (Enterprise).
+- Accessibility: the tree layout is a tree grid with row levels, sort and filter changes are announced, the focused element is the one a screen reader follows, and the React drill-down window is a real dialog in the grid's language.
+
+### Changed
+
+- React: a wide pivot draws the visible cells once per change instead of three or four times — far fewer pauses while scrolling and filtering.
+- The free JavaScript package is about 21 KB smaller.
+
+### Fixed
+
+- On a page with several pivot grids, one grid could drive another's engine.
+- A bare ISO date was read a day early west of UTC.
+- The user's display mode and date range were lost on a refresh, and a pending saved view was not written when the grid was destroyed.
+- Changing only Top N or "Others" did not recompute.
+- Percent displays on an unformatted field showed plain numbers.
+- Ctrl+C threw on a page without clipboard access.
+- The React "expand all" icon was drawn closed.
+
 ## PivotGrid v1.7.2 — October 8, 2026
 
 `@kanunilabs/pivotgrid-core@1.7.2` · `@kanunilabs/pivotgrid@1.2.2` · `@kanunilabs/pivotgrid-react@1.4.2` · `@kanunilabs/pivotgrid-enterprise@1.3.2` · `@kanunilabs/pivotgrid-react-enterprise@1.4.2`
