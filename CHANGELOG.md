@@ -10,11 +10,77 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.8.0 — October 12, 2026
+
+`@kanunilabs/datagrid-core@1.8.0` · `@kanunilabs/datagrid@1.7.0` · `@kanunilabs/datagrid-react@1.6.0` · `@kanunilabs/datagrid-enterprise@1.8.0` · `@kanunilabs/datagrid-react-enterprise@1.7.0`
+
+_36 colour schemes and a Theme Builder, flex columns, row animation, rich tooltips, and a viewport row model._
+
+### Before you upgrade
+
+- Four structure themes are renamed: `quartz` is now `minimal`, `balham` is `ledger`, `material` is `elevated` and `alpine` is `framed`, and their `kanuni-datagrid-theme-*` classes with them. An old name is a type error in TypeScript; in plain JavaScript it is treated as a theme of your own and falls back to the default look.
+
+### Added
+
+- 36 colour schemes, light and dark, on the `palette` prop, each measured against WCAG AA contrast and shipped as its own stylesheet (`themes/<id>.css`, `themes/all.css`). The free Theme Builder on kanunilabs.com/theme-builder designs your own and exports the CSS.
+- Flex columns that share the grid's free width, exact filtering and sorting of integers beyond 2^53 with a `bigint` column type, pinning a row from its menu, column spans (`colSpan`) and row animation (`animateRows`).
+- Tooltips that open on keyboard focus and on touch, can be interactive and can hold your own content.
+- Find without filtering with Ctrl+F, selecting a whole column from its header, renaming a column inside the grid, clipboard callbacks, your own side panels, and editing a group total that is spread over its rows (Enterprise).
+- A viewport row model: the server pushes only the rows on screen, and their changes (Enterprise).
+- Charts: named series palettes in the Format dialog — Classic, Colour-blind safe, Vivid, One colour — kept at 3:1 contrast with the chart background, and `colors` for your own list (Enterprise).
+
+### Changed
+
+- Four structure themes are renamed: `minimal`, `ledger`, `elevated`, `framed`.
+- A range chart with one value column says it needs two instead of drawing empty axes (Enterprise).
+
+### Fixed
+
+- A group's subtotal stayed stale after a cell under it was edited.
+- In React, the range anchor cell lost its custom renderer.
+
+## PivotGrid v1.9.0 — October 12, 2026
+
+`@kanunilabs/pivotgrid-core@1.9.0` · `@kanunilabs/pivotgrid@1.4.0` · `@kanunilabs/pivotgrid-react@1.6.0` · `@kanunilabs/pivotgrid-enterprise@1.5.0` · `@kanunilabs/pivotgrid-react-enterprise@1.6.0`
+
+_36 colour schemes, row density, chart palettes, and the grand-total flags read the way they are documented._
+
+### Before you upgrade
+
+- `showRowGrandTotals` now controls the grand total row and `showColumnGrandTotals` the grand total column, as documented; before, each switched the other — in both renderers, the exports and the clipboard. An app that turned off only one of them sees the other one hidden now; if you had swapped the two to get the right result, swap them back.
+- In the header filter list a tick always means "shown", in include and exclude mode alike. A saved filter is read the same; only what the list displays changed.
+- The footer toolbar buttons get the padding they were meant to have (a 27px target at normal density), so the toolbar is a little taller than in 1.8.0.
+
+### Added
+
+- 36 colour schemes, light and dark, as stylesheets next to the grid's own (`themes/<id>.css`), named by `theme={{ id }}`; they reach every popup and dialog. The theme object gains `headerBackground` and `headerText` for a header band apart from the panels.
+- Row density: `density` `'compact' | 'normal' | 'comfortable'` (24, 28 or 36px rows), and `setDensity()` in plain JavaScript.
+- Charts: named series palettes — Classic, Colour-blind safe, Vivid, One colour — kept at 3:1 contrast with the chart background, and `colors` for your own list; a Colours picker in the JavaScript chart's Format dialog, and the names on `ChartFactory`'s `palette` (Enterprise).
+
+### Changed
+
+- The rows behind a clicked cell are found when `records` is first read, matching the cell's path first: 31–62 ms per click on a million rows, down from 300–490 ms.
+- A range chart with one measure says it needs two instead of drawing empty axes (Enterprise).
+
+### Fixed
+
+- The grand-total flags were swapped everywhere: the row flag drew the column and the other way round.
+- Top N "Others": its outer row was empty and its summary added up instead of applying the summary formula.
+- The header filter list showed ticks the other way round in exclude mode, and the field-settings and save-view windows were laid out wrongly in React.
+- The footer toolbar buttons painted as bare 15px icons with no hover border.
+- The React `locale` prop was documented as defaulting to Turkish; it defaults to English.
+
 ## DataGrid v1.7.0 — October 9, 2026
 
 `@kanunilabs/datagrid-core@1.7.0` · `@kanunilabs/datagrid@1.6.0` · `@kanunilabs/datagrid-react@1.5.0` · `@kanunilabs/datagrid-enterprise@1.7.0` · `@kanunilabs/datagrid-react-enterprise@1.6.0`
 
 _Formulas, server-side data in the free edition, a separate group column, and much more for charts._
+
+### Before you upgrade
+
+- A plain click on a chart category keeps every category on the chart, the others dimmed; before, it narrowed the chart to the clicked one. Ctrl/Cmd-click works as before.
+- A remove and an add of the same row id in one `applyTransactionAsync` now replace the row; before, they cancelled each other out.
+- Loading rows from a server no longer needs a licence. On a Community grid fed by a server, the grouping, server tree and whole-result export entries are not offered; those stay Enterprise.
 
 ### Added
 
@@ -80,6 +146,10 @@ _Value and label filters, live updates in batches, a histogram, and fewer pauses
 
 _Wide pivots stop freezing on load; a partial layout no longer empties the grid._
 
+### Before you upgrade
+
+- A partial `layout`, such as `{ rowHeaderLayout: 'tree' }`, keeps the defaults for the options it leaves out; before, the grid drew no values. A full set of defaults passed only to work around that can go.
+
 ### Fixed
 
 - Sorting the row and column headers built a new locale comparer for every comparison, so a pivot with thousands of members froze for about half a second on load and on every re-sort. One comparer per locale is now reused: 5,000 members sort in 12–25 ms instead of 333–386 ms. The order is unchanged. The member filter list sorts the same way.
@@ -90,6 +160,12 @@ _Wide pivots stop freezing on load; a partial layout no longer empties the grid.
 `@kanunilabs/datagrid-core@1.6.0` · `@kanunilabs/datagrid@1.5.0` · `@kanunilabs/datagrid-react@1.4.0` · `@kanunilabs/datagrid-enterprise@1.6.0` · `@kanunilabs/datagrid-react-enterprise@1.5.0`
 
 _Excel exports that Excel opens past a million rows, with group subtotals and real dates; sticky group headers; fill from the keyboard._
+
+### Before you upgrade
+
+- Exports format the grand-total text the way the grid shows it: a PDF totals row reads "$50.00" where it read "50".
+- Excel exports write ISO date strings and epoch numbers in a date column as real dates instead of text.
+- A date column with a `dateFormat` exports and copies the formatted date (CSV, PDF, clipboard, filter list) instead of the stored value.
 
 ### Fixed
 
@@ -124,6 +200,10 @@ _The packages load under plain Node ESM._
 
 _Tree data from paths, nested arrays or a server; calendar grouping and group selection; relative date filters; many more chart types; and a deferred select-all that reports what it selected._
 
+### Before you upgrade
+
+- With deferred select-all, `selectionChanged` reports the selected rows and their count; before, it reported no rows and a count of 0.
+
 ### Added
 
 - Tree data in two more shapes. `tree.getDataPath` takes each row's place as a list of names; a level with no row of its own becomes a folder row that opens, closes and sorts like any node but is not a record (it cannot be selected or edited). `tree.childrenField` reads nested `children` arrays; edits still write to your objects.
@@ -153,6 +233,13 @@ _Tree data from paths, nested arrays or a server; calendar grouping and group se
 `@kanunilabs/pivotgrid-core@1.7.0` · `@kanunilabs/pivotgrid@1.2.0` · `@kanunilabs/pivotgrid-react@1.4.0` · `@kanunilabs/pivotgrid-enterprise@1.3.0` · `@kanunilabs/pivotgrid-react-enterprise@1.4.0`
 
 _Live updates without a rebuild, a pivot your server aggregates, a trend line in each row, many more chart types, and custom summaries that really run._
+
+### Before you upgrade
+
+- `summaryType: 'custom'` runs your `calculateCustomSummary`, or the aggregator registered under that name. Before, every custom measure showed a sum, so the numbers of such measures change. An unknown aggregator name is reported as an engine error.
+- `controller.on('fieldMove', …)` fires now. A handler registered for it starts running on every field drag; `newIndex` is where the field landed.
+- `groupInterval: 'numeric'` and `'custom'` never grouped; they are now reported through `onError`.
+- Fourteen chart panel captions left the `PivotDictionary` type. A dictionary declared with that type that sets them no longer type-checks; your own messages still rename them.
 
 ### Added
 
@@ -209,6 +296,10 @@ _A filter on a field in the filter area is applied again, and column widths have
 
 _Saving fixes: a refused save is always shown, a new row is never lost or inserted twice, and one cancel no longer stops the grid from sorting._
 
+### Before you upgrade
+
+- In batch editing, a validation rule that reads another column sees the value the user just typed there, not the stored one.
+
 ### Fixed
 
 - After a single cancel on large data, the grid stopped sorting and filtering until it was destroyed: every later request came back as cancelled. A cancel now reaches only the work that was already in flight.
@@ -243,6 +334,12 @@ _A field declared as text is never shown as a date, the React grid stays inside 
 
 _Licence keys verify on plain-HTTP intranet pages and the badge says why a key failed; Turkish-aware search; a font for PDF export; the CSV separator follows the locale._
 
+### Before you upgrade
+
+- The CSV separator follows the grid's `locale`: `;` for Turkish, German, French, Spanish, Italian, Portuguese, Russian and Arabic, `,` elsewhere. If a program reads your CSV files with a fixed separator, pass `delimiter` to the CSV export.
+- Search, text filters and lookups treat İ, I, ı and i as one letter, and search also matches what a cell shows (`valueFormatter`, `dateFormat`). A search can find rows it did not find before.
+- Types: `theme` is typed `GridThemeName`; code that copies the prop's type into a `GridTheme` should use `GridThemeName`. A dictionary typed as the full `GridDictionary` needs the eight new licence keys; a partial `messages` object needs nothing.
+
 ### Added
 
 - Licence keys now verify on pages served over plain `http://` — an intranet host, an IP address. Browsers only offer `crypto.subtle` on HTTPS and `localhost`, so such a page marked a valid key “Invalid license”. Where WebCrypto is missing, a bundled JavaScript implementation of the same ECDSA P-256 check runs instead: same verdict, the signature is always verified, and it loads only on those pages (its own chunk in bundler builds, built into the script-tag builds).
@@ -276,6 +373,10 @@ _Licence keys verify on plain-HTTP intranet pages and the badge says why a key f
 `@kanunilabs/pivotgrid-core@1.4.0` · `@kanunilabs/pivotgrid@1.0.1` · `@kanunilabs/pivotgrid-react@1.2.1` · `@kanunilabs/pivotgrid-enterprise@1.1.0` · `@kanunilabs/pivotgrid-react-enterprise@1.2.0` · `@kanunilabs/licensing@1.3.0`
 
 _Licence keys verify on plain-HTTP intranet pages, and the badge says why a key failed._
+
+### Before you upgrade
+
+- A dictionary typed as the full `PivotDictionary` needs the eight new licence keys; a partial `dictionary` needs nothing.
 
 ### Added
 
@@ -337,6 +438,11 @@ _Enterprise packages republished on licensing 1.1.2; the JavaScript licence badg
 
 _PivotGrid without React — two new packages — and four engine options that were accepted and ignored now work._
 
+### Before you upgrade
+
+- Column subtotals are on by default, like row totals. Set `showColumnTotals: false` in `layout` to keep the columns you had.
+- Exported sheets name their totals in the grid's language instead of English.
+
 ### Added
 
 - `@kanunilabs/pivotgrid` is the PivotGrid for plain JavaScript. One `createPivotGrid(element, config)` call builds the grid straight into the DOM — no component tree, no framework peer. It is a second renderer over the same engine and the same stylesheet as the React package: aggregation in the Web Worker, drag-and-drop between areas, filters, sorting, expand and collapse, saved layouts and theming behave identically, and the config mirrors the React props by name. A UMD build (global `KanuniLabsPivotGrid`) makes a script tag a complete install, and a parity ledger checked in CI records, surface by surface, where the two renderers agree.
@@ -367,6 +473,12 @@ _PivotGrid without React — two new packages — and four engine options that w
 `@kanunilabs/pivotgrid-core@1.2.0` · `@kanunilabs/pivotgrid-react@1.1.0` · `@kanunilabs/pivotgrid-react-enterprise@1.1.1`
 
 _Three configuration props that did nothing now work, and Enterprise export is properly gated._
+
+### Before you upgrade
+
+- `stateStoring` does what it says: `enabled: false` stops saving, `type: 'sessionStorage'` saves there, and `type: 'custom'` calls your `onSave` / `onLoad`. Before, every setting saved to localStorage. Passing no `stateStoring` keeps the old behaviour, so saved layouts are kept.
+- The `toolbar` prop is honoured: switches you set in it take effect now.
+- On a Community grid the paid export formats (`excel-list`, `excel-pivot`, `pdf`) reject with an error routed to `onError` instead of silently doing nothing, and `exportData` returns a promise.
 
 ### Fixed
 
@@ -484,6 +596,10 @@ _npm page and metadata polish — no code changes._
 ## PivotGrid v1.0.5 — August 16, 2026
 
 _The Web Worker setup step is gone._
+
+### Before you upgrade
+
+- The Web Workers are built into the package and start from a `blob:` URL: a worker file you copied into `public/` can go, and an explicit `workerUrl` still wins. Under a Content-Security-Policy without `worker-src blob:`, the grid loads the worker file from the package instead.
 
 ### Changed
 
