@@ -10,6 +10,67 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.9.0 — October 14, 2026
+
+`@kanunilabs/datagrid-core@1.9.0` · `@kanunilabs/datagrid@1.8.0` · `@kanunilabs/datagrid-react@1.7.0` · `@kanunilabs/datagrid-enterprise@1.9.0` · `@kanunilabs/datagrid-react-enterprise@1.8.0` · `@kanunilabs/datagrid-server@1.0.0`
+
+_Free cell editing, cards on narrow screens, your own filter operators, and a ready-made SQL server package._
+
+### Before you upgrade
+
+- A footer or group total on a number column with no formatter now groups its digits in the grid's locale and keeps at most two decimals (`260,064,641.94` instead of `260064641.94`). A column or summary formatter still decides when you set one.
+- A filter condition whose operator the column does not know now matches no rows; before, it let every row through. A saved view that names an operator the column no longer registers is the likely source, and `debugMode` names it on the console.
+- `createRestDataSource` now sends `summaries` and `parentKey` in the query string, JSON-encoded like `sort` and `filter`, when the grid asks for footer totals or a tree level. A server that refuses unknown parameters has to accept them.
+- With grouping on the server, `summaries` now comes with the load request of every grouping level, not only the top one, so sub-group totals can be filled (they stayed empty before). The footer is still read from the answer for the top level only (Enterprise).
+- An edit on a column whose `id` differs from its `field` now writes the row's `field`; before, it wrote a property named after the `id`.
+- In the Enterprise grid a refused `onSave` now shows its error dialog; before, the dialog was cleared before it could appear.
+- The plain-JavaScript grid lays out right to left for Arabic, as the React grid already did.
+
+### Added
+
+- Cell editing is free: `editing` on the Community React grid and `createGrid({ editing: {} })` in plain JavaScript open an in-cell editor on double-click, F2 or typing. Enter commits and moves down, Tab moves on, Esc cancels, and `onSave` gets each committed cell. Edit modes, validation rules, adding and deleting rows, undo, ranges, fill and paste stay Enterprise.
+- Cards on narrow screens: `cardView` draws each row as a card (a title, then labelled fields) when the grid is narrower than a breakpoint (600px by default), with a Sort by control in place of the headers. Sorting, filtering, selection, grouping, server data and virtual scrolling keep working; editing stands down while cards are shown, and `onCardViewChange` tells you when the grid switches.
+- Your own filter operators: a column's `filterOperators` (`{ id, label, test, operandType }`) appear in the operator menu and in the Enterprise filter builders, and `renderFilter` puts your own control in the filter cell. The condition stays plain data, so saved views and a server carry it unchanged.
+- `valueParser` turns typed and pasted text into the stored value before validation runs, and `valueSetter` writes it for nested or immutable data.
+- `wrapHeaderText` on a column breaks a long caption onto more lines, and `autoHeaderHeight` lets the header grow to the tallest caption.
+- `@kanunilabs/datagrid-server`, a new free package: it turns the grid's load request (sort, filter, quick search, paging, footer totals, server grouping and tree levels) into parameterized SQL for PostgreSQL, MySQL, SQLite and SQL Server, with the grid's own filter meaning. It has no dependencies; you pass the function that runs a query.
+- `createRestDataSource({ distinctValues: true })` offers the header filter checklist from the same endpoint.
+
+### Changed
+
+- A number total with no formatter groups its digits in the grid's locale, like the row count beside it.
+- An operator id the column does not register matches no rows instead of every row.
+
+### Fixed
+
+- With fewer than 20,000 rows, the React grid could stay on "No data" after it mounted, in every version since 1.0.0: the first view was computed before the component had subscribed to it, and the update was lost. The rows now appear on first paint. Larger datasets, which go through the Web Worker, the plain-JavaScript grid and PivotGrid were not affected.
+- A REST grid's footer stayed empty and a server tree could not tell which level was asked for: `summaries` and `parentKey` were never sent, and returned `summaries` were dropped.
+- Accessibility: the filter row's cells are grid cells; the confirm and error dialog keeps Tab inside it, as `aria-modal` promises, with ids unique per dialog; the focus ring, selection and editor stay visible in Windows high-contrast mode.
+- The Enterprise grid never showed the dialog for a refused save.
+
+## PivotGrid v1.10.0 — October 14, 2026
+
+`@kanunilabs/pivotgrid-core@1.10.0` · `@kanunilabs/pivotgrid@1.5.0` · `@kanunilabs/pivotgrid-react@1.7.0` · `@kanunilabs/pivotgrid-enterprise@1.6.0` · `@kanunilabs/pivotgrid-react-enterprise@1.7.0`
+
+_Quick search over the rows, a cap on runaway columns, and accessibility fixes._
+
+### Before you upgrade
+
+- A pivot with more than 1,000 column members now draws the first 1,000 and says so above the table; the totals still count all the data. Set `maxColumns` to raise the cap, or `0` to turn it off.
+- The filter and remove icons on a field chip are no longer buttons, because a control inside the chip's own button cannot be reached as a second control by a screen reader. Mouse clicks work as before; from the keyboard, Alt+ArrowDown on the chip opens its filter and Delete removes it. A test or script that selected `button.kanuni-pivot-chip-btn` should select `.kanuni-pivot-chip-btn`.
+- The summary badge on a value field (SUM, AVG…) is drawn in the text colour on an accent tint with an accent border, instead of accent-coloured text.
+
+### Added
+
+- Quick search: `search` puts a box in the footer that shows only the row members whose caption contains the text, with the members above them, on top of the reader's own filters; `setSearchText(text)` does the same from code. Nothing is saved with the layout, so clearing it gives the view back.
+- `maxColumns` (1,000 by default): a field with a different value on almost every row no longer freezes the page when it is dropped on the columns. `getEngineResult().columnsTruncated` reports `{ shown, total }`. Exports are not cut: they keep every column.
+- Alt+ArrowDown on a field chip opens its member filter, announced in the chip's key description in twelve languages.
+
+### Fixed
+
+- The pivot grid has an accessible name, and keeps its focus ring and selection visible in Windows high-contrast mode.
+- The summary badge on a value field measured 2.77:1 contrast, below the 4.5:1 that small text needs.
+
 ## DataGrid v1.8.0 — October 12, 2026
 
 `@kanunilabs/datagrid-core@1.8.0` · `@kanunilabs/datagrid@1.7.0` · `@kanunilabs/datagrid-react@1.6.0` · `@kanunilabs/datagrid-enterprise@1.8.0` · `@kanunilabs/datagrid-react-enterprise@1.7.0`
