@@ -10,6 +10,68 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.10.0 — October 15, 2026
+
+`@kanunilabs/datagrid-core@1.10.0` · `@kanunilabs/datagrid@1.9.0` · `@kanunilabs/datagrid-react@1.8.0` · `@kanunilabs/datagrid-enterprise@1.10.0` · `@kanunilabs/datagrid-react-enterprise@1.9.0` · `@kanunilabs/datagrid-server@1.1.0`
+
+_State restore for tabbed apps, columns that give way on a narrow screen, and a REST grid that no longer leaves rows blank._
+
+### Before you upgrade
+
+- `createRestDataSource` cancels a running request only when the query changes (sort, filter, search, grouping). Blocks of one query now load side by side, so a server sees a few requests at once while the reader scrolls; before, each new block cancelled the one before it and rows could stay blank.
+- The column chooser lists every column with a check box, under a "Columns" title, with a search box above eight columns; before, it listed only the hidden ones and opened empty when none was hidden. The last visible column cannot be hidden.
+- "Chart by this column" on a number column charts it as a series (its values summed per category) instead of using every amount as a category. "Show group footers" appears in the header menu only while the grid is grouped.
+- A cell with a search highlight holds its text and marks in one `span.kanuni-datagrid-cell-text`. CSS that styled the cell's direct children should target that span.
+- Toolbar and chart-panel commands carry an icon beside their label (`svg.kanuni-datagrid-icon` + a `span`), and the chart panel's commands sit in `.kanuni-dg-chart-actions`. Code that read a button's `textContent` still gets the label.
+- In batch editing the Save / Cancel strip is not mounted while nothing is pending; before, `.kanuni-datagrid-filter-bar` was an empty band. Tests that looked for it right after mount should wait for a change.
+- A detail panel is as wide as the viewport, not as wide as all the columns, and pressing its arrow no longer selects the row.
+- In development the console warns once when a grid has no height of its own and draws every row of a large result.
+- `@kanunilabs/datagrid-server`: an unknown sort direction is now a 400 (`SqlRequestError`) instead of being read as ascending, and on PostgreSQL the nils-last sort is written `col ASC NULLS LAST`. An expression index you built on the old `CASE WHEN col IS NULL …` term no longer matches there; `indexStatements` writes the ones that do.
+
+### Added
+
+- `hideBelow` on a column hides it while the grid is narrower than that many pixels, as a layer of its own: the saved view keeps what the user chose, the column chooser shows it ticked, and it comes back by itself on a wide screen. Cards leave it out too.
+- Restoring into a rebuilt grid: `getViewState({ include: ['details'] })` keeps the open detail panels, and a restored focus on a server's row waits for its block instead of being dropped.
+- `@kanunilabs/datagrid-server`: `indexStatements(config, { columns })` writes the indexes the generated SQL can use (PostgreSQL, MySQL 8, SQLite), and `nullable: false` on a column drops the NULL handling from its sort and its `=` / `<>`.
+- A read-only grid that still selects cells and ranges and copies them: `editing: { enabled: false, range: true }` keeps the range and Ctrl+C (the text the cells show, as TSV) while nothing can be edited, pasted, cut or filled (Enterprise).
+- Icons on the toolbar's Columns and Chart buttons and on the chart panel's commands; the chart types read as one control. `ToolbarIcon` is exported from the React package.
+
+### Fixed
+
+- A REST grid scrolled faster than its server answered left rows as skeletons for good once the server took longer than about 130 ms per block.
+- A search highlight dropped the spaces next to the match ("HEARTMEASURING" for "heart measuring").
+- Under React's StrictMode a custom `stateStoring` store was read three times for one grid; it is read once.
+- The field chooser opened nothing when no column was hidden.
+
+## PivotGrid v1.11.0 — October 15, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.0` · `@kanunilabs/pivotgrid@1.6.0` · `@kanunilabs/pivotgrid-react@1.8.0` · `@kanunilabs/pivotgrid-enterprise@1.7.0` · `@kanunilabs/pivotgrid-react-enterprise@1.8.0`
+
+_The whole state in one piece for tabbed apps, Count Distinct that counts text, and charts that show what the grid shows._
+
+### Before you upgrade
+
+- `exportData(format)` without `applyFilters` now writes only the rows the filters keep, as the footer's export buttons always did. Pass `applyFilters: false` for every source row.
+- Restoring a saved layout drops the fields your app no longer defines (the calculated fields a reader made stay), and fields added since then join as you define them. Before, a removed field came back without its data field.
+- The saved state carries `version: 1`; a state with another version is ignored and the grid opens with its layout. States saved before this version have none and still load.
+- A field counted distinct leaves blank cells out of the count, the way the main-thread engine and the server pivot always did; before, a blank counted as one more value on a number field.
+- Under a display mode (% of total, running total…) the chart draws the values the grid shows instead of the sums under them, and a percent measure prints as a percent in tooltips and on the axis.
+- The dictionary gained `distinct` ("Count Distinct"). A TypeScript app that types a complete dictionary of its own adds the key. The Enterprise prefilter builder's eight captions (`builderCombine`, `builderAddCondition`, `builderAddGroup`, `builderRemoveGroup`, `builderRemoveCondition`, `builderEmpty`, `opIsBlank`, `opIsNotBlank`) left the shared dictionary type: overrides of them still apply at runtime, but TypeScript now reports them as unknown keys in a dictionary typed as `Partial<PivotDictionary>`; keep them in an object of their own type.
+
+### Added
+
+- `getPersistedState()` and `applyPersistedState(state)` on the React ref and the controller: everything the reader arranged as versioned plain JSON, for a tab you unmount and rebuild or a view kept on your server.
+- `stateStoring.onLoad` may return a Promise (IndexedDB, a request); nothing is saved until it lands, so the default layout never overwrites the state being loaded.
+- Parts registered with `registerReportStatePart` (the Enterprise chart panel's chart, or your own) are saved with the state; `notifyStatePartChanged()` saves a change. `include: ['scroll']` keeps the body's scroll, put back once the pivot is drawn.
+- Count Distinct in the Field Settings dialog: text and date fields offer Count and Count Distinct, number fields list it after the others, in twelve languages.
+
+### Fixed
+
+- A distinct count of a text field (customers, order numbers) read 1 in every cell.
+- CSV and Excel list export stopped with a DataCloneError when a field's `format` was a function.
+- A field the app added after a layout was saved was missing for every returning user.
+- The React chart cut long category labels at a fixed 60 px strip and wrote large axis values as "14000k".
+
 ## DataGrid v1.9.0 — October 14, 2026
 
 `@kanunilabs/datagrid-core@1.9.0` · `@kanunilabs/datagrid@1.8.0` · `@kanunilabs/datagrid-react@1.7.0` · `@kanunilabs/datagrid-enterprise@1.9.0` · `@kanunilabs/datagrid-react-enterprise@1.8.0` · `@kanunilabs/datagrid-server@1.0.0`
