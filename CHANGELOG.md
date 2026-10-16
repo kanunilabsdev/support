@@ -10,6 +10,30 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.10.1 — October 16, 2026
+
+`@kanunilabs/datagrid-core@1.10.1` · `@kanunilabs/datagrid@1.9.1` · `@kanunilabs/datagrid-react@1.8.1` · `@kanunilabs/datagrid-enterprise@1.10.1` · `@kanunilabs/datagrid-react-enterprise@1.9.1`
+
+_Batch, row, form and popup editing are now in the free DataGrid._
+
+### Before you upgrade
+
+- The free `DataGrid` and `createGrid` now honour `editing.mode`: `batch`, `row`, `form` and `popup` work instead of falling back to cell editing. An app that passed one of them to the free grid gets that mode now. In these modes the grid does not write into your rows: `onSave` receives the changes and the app writes them into its data.
+- The styles for the Save / Cancel strip, changed and removed cells, the edit form and the popup moved from the Enterprise stylesheet to the free one. Load both stylesheets, as the setup guide says; an Enterprise app that loaded only `@kanunilabs/datagrid-react-enterprise/styles.css` (or `@kanunilabs/datagrid-enterprise/styles.css`) loses them.
+- Enter on a button of the edit form (Cancel, for instance) now presses that button; it used to save the row. Grid columns such as the selection check box are no longer offered as form fields.
+- In the free React grid a cell that is still being saved in cell mode carries the changed-cell marker, as the plain-JavaScript grid already did.
+
+### Changed
+
+- Batch, row, form and popup editing moved from Enterprise to the free edition, in React and plain JavaScript: the Save / Cancel strip, every cell of a row opened at once (double-click, or Edit row… in the row menu), the form in the row flow and the form in a dialog, with `formLabels` and `formHeight`. Validation rules, CRUD handlers, adding and deleting rows, per-row permissions, lookup and custom editors, undo and redo, range selection and the command column stay Enterprise.
+- `GridEditForm` (React) and `buildEditForm` (plain JavaScript) are exported from the free packages; the Enterprise packages still export them.
+
+### Fixed
+
+- Enter on the edit form's Cancel button saved the row instead of cancelling it, and in the plain-JavaScript grid Tab on a form button left the form.
+- In the row, form and popup modes, F2 or typing on a focused cell opens the row (in `row` mode with the typed character in that cell). It used to open a lone cell editor whose value was never saved.
+- In row mode a check-box column is edited with a check box in React too (it was a text box that saved "true" as text), and the form leaves out the grid's own columns such as the group column.
+
 ## DataGrid v1.10.0 — October 15, 2026
 
 `@kanunilabs/datagrid-core@1.10.0` · `@kanunilabs/datagrid@1.9.0` · `@kanunilabs/datagrid-react@1.8.0` · `@kanunilabs/datagrid-enterprise@1.10.0` · `@kanunilabs/datagrid-react-enterprise@1.9.0` · `@kanunilabs/datagrid-server@1.1.0`
