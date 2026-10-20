@@ -10,6 +10,39 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.10.2 — October 20, 2026
+
+`@kanunilabs/datagrid-core@1.10.2` · `@kanunilabs/datagrid@1.9.2` · `@kanunilabs/datagrid-react@1.8.2` · `@kanunilabs/datagrid-enterprise@1.10.2` · `@kanunilabs/datagrid-react-enterprise@1.9.2`
+
+_Each row shows whether its save is pending, running, done or refused, in the free grid._
+
+### Before you upgrade
+
+- With `rowStatus.messages` on, the rows the grid draws include a row of kind `message` under each refused save. Code that walks the displayed rows and switches on `kind` should skip it; with the option off nothing changes.
+- Every palette and colour scheme defines three new tokens, `--dg-success`, `--dg-success-text` and `--dg-on-success`. A theme of your own that sets every `--dg-*` token keeps working and can add them.
+
+### Added
+
+- `rowStatus` marks each row's save status (changed, saving, saved, refused) in React and plain JavaScript, free: a marker on the row's leading edge, an optional tint, and the status read out by screen readers. It follows the grid's own saves in every editing mode; `get` lets the app report rows it saves itself.
+- `rowStatus.icons` adds a narrow column at the start of each row with a glyph per status (dot, spinning ring, tick, triangle), so the status does not rest on colour alone. The ring stands still under reduced motion.
+- `rowStatus.messages` puts a refused save's reason under its row, with Retry and Delete row. `errors` supplies reasons from the app (by row key) and replaces the grid's own text; `onRetry` retries the app's own saves; Delete row shows only when `onDelete` is given, and the app does the deleting.
+- `--dg-font-family` sets the grid's typeface, menus opened on the page included when it is set on `:root`; unset, the grid inherits the page font as before. `--dg-success`, `--dg-success-text` and `--dg-on-success` colour success states.
+
+## PivotGrid v1.11.1 — October 20, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.1` · `@kanunilabs/pivotgrid@1.6.1` · `@kanunilabs/pivotgrid-react@1.8.1` · `@kanunilabs/pivotgrid-enterprise@1.7.1` · `@kanunilabs/pivotgrid-react-enterprise@1.8.1`
+
+_Palette, dark mode and typeface options, so a PivotGrid matches the DataGrid beside it._
+
+### Before you upgrade
+
+- Numbers in the data cells use tabular figures (every digit the same width), so columns of amounts line up. Text in a fixed-width font looks the same; in a proportional font the numbers can take slightly more room.
+
+### Added
+
+- `palette` and `dark` on both renderers pick a colour scheme and its dark variant, the same 36 schemes the DataGrid offers; `dark` alone gives the DataGrid's dark look.
+- `--pivot-font-family` sets the typeface (unset, the page font is inherited as before), and `--pivot-success-bg` / `--pivot-success-foreground` colour success states. A theming guide lists every variable.
+
 ## DataGrid v1.10.1 — October 16, 2026
 
 `@kanunilabs/datagrid-core@1.10.1` · `@kanunilabs/datagrid@1.9.1` · `@kanunilabs/datagrid-react@1.8.1` · `@kanunilabs/datagrid-enterprise@1.10.1` · `@kanunilabs/datagrid-react-enterprise@1.9.1`
