@@ -10,6 +10,100 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.10.5 — October 28, 2026
+
+`@kanunilabs/datagrid-core@1.10.5` · `@kanunilabs/datagrid@1.9.5` · `@kanunilabs/datagrid-react@1.8.5` · `@kanunilabs/datagrid-enterprise@1.10.5` · `@kanunilabs/datagrid-react-enterprise@1.9.5`
+
+_Streamed CSV and Excel exports with no row cap, a divider to resize the docked chart, and keyboard and focus fixes for the filter dialogs inside a modal._
+
+### Before you upgrade
+
+- The Turkish name of the missing-value row in the header filter (and of a blank group) is now "(Boş Olanlar)", matching "(Boş Olmayanlar)". A test that looks for "(Boşlar)" must look for the new word.
+- The filter panel sentence names an empty string "(empty text)" and a value of spaces "(1 space)", "(2 spaces)", as the header filter lists them; a missing value reads "(Blanks)". `FilterLabels` gains `emptyText`, `space` and `spaces`: a full `FilterLabels` object of your own needs them.
+- Under `portalContainer` the layer the grid puts its popups in now covers the viewport (it was zero-size) and passes clicks through to the page; what is put in it takes them. An app that styled `.kanuni-datagrid-portal-host` should check its rule.
+- The grid's error message (a failed menu action) is marked `data-kanuni-portal="toast"` instead of `"popup"`.
+- With the Enterprise side bar, card view compares its breakpoint with the grid and the side bar together, so a grid with a side bar switches to cards at the same screen width as one without.
+
+### Added
+
+- `stream: true` on `exportToCsv` and `exportToExcel` writes the file as the rows arrive instead of building it in memory: the view in slices, a server source's pages, or its own new `DataSource.exportRows(request, signal)` stream. With `remote.exportMaxRows: Infinity` there is no cap. Excel is written by a writer of our own (no library to load): typed values, each column's number format, widths, a frozen header, a filter, and a new sheet past Excel's row limit. Cancel or a failure hands over no file; `writable` takes the bytes straight to a file the user picked and is aborted, never closed, when the export does not finish. 1.2 million rows took 7 seconds and opened in Excel.
+- A divider between the docked chart panel and the grid: drag it (or use the arrow keys on it) to make the chart shorter and give the grid its rows back, which matters most in a modal. The grid keeps at least 120 px of a box of fixed height. The height is the chart state's new `dockHeight`, kept by `getViewState()`.
+- `printLayout.onLimit({ rows, maxRows })` is called when a print is asked for over `maxRows`, so the app can say that only the rows on screen were printed.
+- `data-kanuni-portal="toast"` marks a short-lived message, apart from `popup` and `tooltip`.
+
+### Fixed
+
+- The filter builder took no focus when it opened (React), Tab walked out of it into the page behind, and closing it left focus nowhere. It now takes focus, closes on Escape, keeps Tab inside, and gives focus back to the column header or the button it was opened from.
+- The header filter's "(Custom…)" entry could be reached with Tab but not opened: Enter on it applied the filter, and Space on a button ticked a value. A button in the popup now takes its own Enter and Space.
+- Inside a modal centred with a CSS transform (`portalContainer`), the filter builder, the calculated column dialog and the other full-screen dialogs opened off the screen to the left and slid away when the window was resized. They open centred and stay there.
+- In a modal, Escape on the header filter sent focus to the modal instead of back to the column; it goes to the column header.
+- The calculated column dialog showed a fixed English example, "[Price] * [Qty]"; it shows one built from the grid's own columns.
+
+## DataGrid v1.10.4 — October 24, 2026
+
+`@kanunilabs/datagrid-core@1.10.4` · `@kanunilabs/datagrid@1.9.4` · `@kanunilabs/datagrid-react@1.8.4` · `@kanunilabs/datagrid-enterprise@1.10.4` · `@kanunilabs/datagrid-react-enterprise@1.9.4`
+
+_The header filter tells blanks, empty text and spaces apart, opens the filter builder from a column, and keeps Tab and focus inside._
+
+### Before you upgrade
+
+- On a text column, `=` and `in` compare as text: an empty string, a space, `0` and `012` are four different values, where they used to be read as numbers and match each other (`012` equalled `12`). A number or bigint column compares numerically as before.
+- The header filter lists a missing value (null) as its own row, and an empty string and each run of spaces as rows of their own, where all of them were one Blanks row. A filter you stored with the old behaviour keeps working; a list you build from the checklist now names the value it means.
+- The header filter popup is named from the dictionary (`filterPopupAria`, "{column} filter" in English). A test that finds it by an English aria-label in another language must use the grid language.
+- The filter builder dialog, its bar and the Import button read their text from the grid dictionary. In English the words are the same; in any other language they now follow the grid.
+- When your app passes `onOpenFilterBuilder` to an Enterprise grid it is now the one called by the filter panel and the header filter, with `{ columnId }`; before, the grid replaced it with its own. `controller.openFilterBuilder()` opens the grid's own builder whichever you pass.
+
+### Added
+
+- The header filter lists a null as a Blanks row, an empty string as an empty text row, and a run of spaces as a row naming how many (`filterEmptyText`, `filterSpace`, `filterSpaces`, in 12 languages). When the column has blanks, a Non-blanks row selects everything else and applies as one `isnotnull`; a stored `isnotnull` reopens with that row ticked. Server-side lists show the same rows.
+- A custom entry at the top of the header filter opens the filter builder on that column, with the column's condition from the filter or an empty one to fill in. It shows wherever a builder can be opened: the Enterprise grids, or an app that passes `onOpenFilterBuilder` (which now receives `{ columnId }`).
+- `filterBuilderBar: false` leaves out the bar above the grid that `filterBuilder` adds (Enterprise, both renderers); the builder is still opened from the filter panel, the header filter and code.
+- `controller.openFilterBuilder(columnId?)` asks an Enterprise grid for the builder, optionally starting on a column.
+- `hideInChooser: true` on a column keeps it out of the column chooser, the Field chooser entry of the header menu and the side bar's Columns panel. Search, filters and export still read it.
+- `data-kanuni-portal` says what a popup layer is: `popup` for a menu or list the user works in, `tooltip` for a hint, `host` for the wrapper that `portalContainer` adds.
+
+### Fixed
+
+- On a text column the `in` and `=` conditions turned both sides into numbers: an empty string, a space and `0` matched each other and `012` matched `12`. They compare as text now, in the main thread and in the worker.
+- In the header filter of a column holding both null and empty strings, ticking Blanks selected whichever of the two was seen first. Each is its own row and its own condition now.
+- On a large client-side column, whose list is prepared in background slices, the header filter listed the stored value of a cell that a `valueFormatter` or a lookup draws differently; it lists what the cell shows, as the smaller lists did.
+- Tab left the header filter popup and went on to the page behind it; it now goes round inside the popup. A click on an empty part of the popup no longer drops the focus, and typing there goes to the search box.
+- After Escape closed a header filter that the mouse had opened, the focus went back to the filter button even when it was hidden, and was lost; it goes to the header cell then.
+
+## DataGrid v1.10.3 — October 23, 2026
+
+`@kanunilabs/datagrid-core@1.10.3` · `@kanunilabs/datagrid@1.9.3` · `@kanunilabs/datagrid-react@1.8.3` · `@kanunilabs/datagrid-enterprise@1.10.3` · `@kanunilabs/datagrid-react-enterprise@1.9.3` · `@kanunilabs/datagrid-server@1.1.1`
+
+_The header filter lists every value of a server-side column, the toolbar's parts are yours to pick, and popups work inside a modal._
+
+### Before you upgrade
+
+- The toolbar search runs at once when the box loses focus or on Enter, instead of only after the debounce. Pass `toolbar={{ search: { applyOnBlur: false } }}` for the old timing.
+- Number editors inside cells are right-aligned and have no spin buttons; editors keep the cell's padding, so the value stays where the cell drew it.
+- In the header filter of a client-side list, Select all and Clear act on the values the search box shows when it has text (as in Excel); ticks the search hides are left as they were. With the box empty they act on the whole list, as before. Before, Select all ticked every value whatever the search said.
+- `FilterOperator` gains `notin`. A TypeScript `switch` over the operators that has to be exhaustive needs a case for it; a `notin` condition in a filter you send to your own server is the complement of `in`, blanks included.
+- A server-side source keeps working unchanged: a `loadDistinctValues` that answers an array still gets the single list of at most `limit` values. Answering a page (`{ values, totalCount, hasBlanks }` to a request with `skip` and `take`) is what lists every value.
+- The Enterprise status bar is no longer `role="status"` itself: its counts sit in an inner `.kanuni-datagrid-status-live` element that carries the role, and your `itemsAfter` moved into its own `.kanuni-datagrid-status-items--end` group outside it. Tests or CSS that looked for `[data-testid="dg-status-bar"][role="status"]` should look for the inner element.
+
+### Added
+
+- `toolbar` takes an object as well as `true` / `false`: `search`, `columns` and `export` pick its parts, each on by default, so `toolbar={{ export: false, columns: false }}` is the search box alone.
+- Search box settings under `toolbar.search`: `placeholder`, `maxLength`, `debounce`, `applyOnBlur` and `validate`, whose message refuses a text: it is shown beside the box and never searched, on a server-side grid never sent.
+- `GridToolbarButton` (React) and `toolbarButton()` (plain JavaScript): an app's own icon button with a name, a shortcut hint and, while it cannot be used, the reason, for the toolbar or the status bar.
+- `portalContainer` picks where the grid draws its popups (header filter, menus, date and lookup lists, dialogs): an element, or a function returning one. Put them inside a modal such as a Radix Dialog, whose `pointer-events: none` on the rest of the page made a popup on `<body>` unclickable. Popups stay under their control even when the modal is centred with a CSS `transform`, and every popup carries `data-kanuni-portal` so your own click handling can recognise it.
+- `statusBar.itemsBefore` puts your items at the start of the status bar; `itemsAfter` is its end.
+- The header filter on a server-side grid can list every value of a column. A source that answers a paged `loadDistinctValues` (`skip`, `take`, `search` in, `{ values, totalCount, hasBlanks }` out) gets a list as long as the server's, loaded as it is scrolled (a jump to the end asks for the last piece only), searched on the server, with the blanks as a row of their own. Select all, Clear and the ticks work on the whole list, with a search active and with pieces not loaded: the selection is kept as everything except these or only these, and becomes one `notin` or `in` filter, however long the list.
+- `remote.distinctFollowsSearch` makes that list follow the grid: the request carries the other columns' filters and the quick search, and is asked again when they change. Off by default; the list is the whole column.
+- The `notin` filter operator, the exact complement of `in` (blank cells pass), in the client engine, the worker and the SQL builder.
+- `@kanunilabs/datagrid-server` answers the paged request (a page, a count and a blank probe over one set of conditions; `?distinct=` takes `skip`, `take`, `search`, `filter`, `searchText`), `createRestDataSource` sends it, and `notin` is a SQL operator there.
+
+### Fixed
+
+- In the form and popup editors a field the user cannot change looked like one they could; it is now drawn recessed, with muted text and a not-allowed cursor. The date field there takes the form's box instead of the in-cell underline.
+- In row editing the focused cell kept its focus ring around the editor, and number values sat to the left of their column.
+- A screen reader read the status bar's buttons again every time the row count changed: the whole bar was one live region. Only the counts are now.
+- The header filter popup was torn out of the page and rebuilt about 20 ms after opening, when its values arrived, and the keys typed in between were lost. It is one mount from opening on now, and takes the values and ticks when they land.
+
 ## DataGrid v1.10.2 — October 20, 2026
 
 `@kanunilabs/datagrid-core@1.10.2` · `@kanunilabs/datagrid@1.9.2` · `@kanunilabs/datagrid-react@1.8.2` · `@kanunilabs/datagrid-enterprise@1.10.2` · `@kanunilabs/datagrid-react-enterprise@1.9.2`
