@@ -10,6 +10,55 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## DataGrid v1.10.7 — October 29, 2026
+
+`@kanunilabs/datagrid-core@1.10.7` · `@kanunilabs/datagrid@1.9.7` · `@kanunilabs/datagrid-react@1.8.7` · `@kanunilabs/datagrid-enterprise@1.10.7` · `@kanunilabs/datagrid-react-enterprise@1.9.7`
+
+_A hidden tab keeps its chart in the stored view, the docked chart fits a short box, and the toolbar Chart button can be left out._
+
+### Before you upgrade
+
+- A view-state part whose owner unregisters (`registerViewStatePart`) now stays in `getViewState().parts` with its last snapshot until the owner registers again, instead of leaving the view. A chart kept this way is handed back to the chart when it returns.
+- `stateStoring` no longer writes when the grid is torn down unless a save is still waiting.
+- The docked chart is shown no taller than leaves the grid 80 px of rows, on open and when its box resizes; the height kept in the chart state is unchanged.
+- In Excel, numeric text with decimals ("12.50") in a column on the default number format keeps its decimals (`#,##0.00`).
+
+### Added
+
+- `toolbar.chart: false` leaves out the Chart button the Enterprise grids add to the toolbar; the chart still opens from code and the menus.
+
+### Fixed
+
+- A tab hidden with React's `<Activity>` lost its chart from the stored view: the chart unregistered as the tab hid, and `stateStoring` then wrote the view without it — every time, because its save timer was never cleared after it ran.
+- The chart divider counted the grid's sticky column header, which sits inside the scroller, against its 80 px: in a 614 px dialog the grid kept one and a half rows. It counts rows only now.
+- The docked chart opened at its full height in a short dialog and left the grid no rows until the divider was touched.
+- The search box's error message was drawn at 11 px; it uses the grid's body size.
+- Excel showed "12.50" from a database DECIMAL as 12.5.
+
+## DataGrid v1.10.6 — October 28, 2026
+
+`@kanunilabs/datagrid-core@1.10.6` · `@kanunilabs/datagrid@1.9.6` · `@kanunilabs/datagrid-react@1.8.6` · `@kanunilabs/datagrid-enterprise@1.10.6` · `@kanunilabs/datagrid-react-enterprise@1.9.6`
+
+_The toolbar search box follows the grid, Excel reads values the way databases send them, and F3 works in the find box._
+
+### Before you upgrade
+
+- The toolbar search sends its text trimmed: `getSearchText()`, `filterChanged`, the saved view and a server source's `searchText` no longer carry the spaces typed around it.
+- In Excel, text that reads as a number in a `number` column ("12.50", as MySQL sends a DECIMAL) is written as a number, and a date that names no day ("0000-00-00") as an empty cell, in the plain, styled and streamed exports. A whole number on the default number format is shown without a trailing decimal separator.
+- The chart divider counts only the grid's rows (80 px) against its minimum, not the header and footer, so the chart can be dragged taller in a short box than in 1.10.5.
+
+### Added
+
+- `toolbar.search.ariaLabel` gives the search box its own accessible name.
+
+### Fixed
+
+- The toolbar search box read the grid's search only when it mounted (and never in plain JavaScript), so a view restored afterwards — a tab switched back to, a reload, a dialog opened with a search — filtered the rows under an empty box. It now shows the grid's search wherever it was set.
+- The search box's debounce also ran when it mounted and could write its empty text over a search a saved view had just restored; it runs only after the user types.
+- On a phone the search box takes the toolbar's whole first line, and on a touch screen it is a 44 px target with 16 px text, so iOS no longer zooms in when it takes focus.
+- Excel showed a whole number on the default format as "1,234." and a zero date as "####"; a number column of numeric text could not be summed.
+- F3 and Shift+F3 in the find box opened the browser's find instead of stepping through the matches.
+
 ## DataGrid v1.10.5 — October 28, 2026
 
 `@kanunilabs/datagrid-core@1.10.5` · `@kanunilabs/datagrid@1.9.5` · `@kanunilabs/datagrid-react@1.8.5` · `@kanunilabs/datagrid-enterprise@1.10.5` · `@kanunilabs/datagrid-react-enterprise@1.9.5`
