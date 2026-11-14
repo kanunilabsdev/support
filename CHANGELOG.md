@@ -10,6 +10,228 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## PivotGrid v1.11.2 — November 14, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.2` · `@kanunilabs/pivotgrid@1.6.2` · `@kanunilabs/pivotgrid-react@1.8.2` · `@kanunilabs/pivotgrid-enterprise@1.7.2` · `@kanunilabs/pivotgrid-react-enterprise@1.8.2`
+
+_Ratios that stay blank on a division by zero, helper measures, touch-sized targets, translated Excel totals, the summary as a flat table, several selected cells with their source rows, field groups, and saved layouts kept apart from their filters._
+
+### Before you upgrade
+
+- A summary formula or function that has no number — a division by zero, null, NaN, Infinity or a throw — now leaves the cell blank instead of 0, on screen, in the selection totals and in exports. The function compileSafeFormula returns gives NaN on a division by zero; a row-level formula still reads it as 0.
+- On a touch screen the field chips are wider (44px controls) and the column header filter funnel sits at the end of the cell and is always shown.
+- On EnterprisePivotGrid, Ctrl/Cmd+click now adds a rectangle to the selection and Shift+click extends it, instead of starting a new one.
+- The React Enterprise Excel files carry the grid language for the grand-total and subtotal labels and the sheet names.
+
+### Added
+
+- `helper: true` on a data field: computed and read by summary formulas, never drawn or exported.
+- `density: 'touch'` (45px rows and headers) and 44px touch targets on the footer, menus, chip controls and column header controls.
+- `onLargeExport({ format, size, limit, unit })`, asked before a styled Excel export gives way to the plain .xls one; `false` cancels.
+- Enterprise: `getSummaryTable(controller)` and `exportSummaryTable(controller, options)`, the summary as a flat table regardless of what is expanded.
+- Enterprise (React): several selected cells — Shift, Ctrl/Cmd, a touch long press — with `onSelectionChange`, `ref.getSelectedCells()` and `ref.getRecordsForSelection()` (each source row once).
+- Enterprise: field groups (`group`, `groupIndex`) that move as one.
+- `splitPersistedState` / `mergePersistedState` to keep a layout apart from its filters; `clearAllFilters()`; `openFieldChooser()` / `closeFieldChooser()`; `controller.getCellRecords(rowPath, colPath)` and `controller.computeSnapshot()`.
+
+### Fixed
+
+- A division by zero in a ratio showed 0, which read as a real value.
+- On a touch screen the column header filter funnel was a 10px glyph shown only on hover, and the chip controls were 24px.
+
+## DataGrid v1.10.14 — November 13, 2026
+
+`@kanunilabs/datagrid-core@1.10.14` · `@kanunilabs/datagrid@1.9.14` · `@kanunilabs/datagrid-react@1.8.14` · `@kanunilabs/datagrid-enterprise@1.10.14` · `@kanunilabs/datagrid-react-enterprise@1.9.14`
+
+_Multi-select on cards, a typed-open lookup that never keeps its opening letter, the whole focused-row event in React, a read-only look at the open editor, and reasons for disabled check-box items._
+
+### Before you upgrade
+
+- In card view with `selection.checkboxColumn`, a press on a card now only focuses it; each card has its own check box for selecting. Before, the press also toggled a selection the card did not show.
+- A lookup opened by typing a letter goes back to the cell's value on the Escape that closes its list, and on any leave that picked nothing (unless `allowCustom` or `clearable` with emptied text).
+- The React `onFocusedRowChanged` prop now receives the whole event (`rowKey`, `previousRowKey`, `row`, `reason`).
+
+### Added
+
+- Card view selection (React): a check box on every card, 44 px on a touch screen; select-all and the selected count in the card bar; a selected card styled apart from the focused one.
+- `controller.getEditSession()` and `controller.isEditorDirty()`: what is open for editing and whether it changed, read-only.
+- `lookup.onDisabledItem({ item, row, rowKey, columnId })` for a press on a disabled `lookup.multiple` item, and `disabled: { reason, visible: false }` to give the reason only as a tooltip and to screen readers.
+- `aria-controls` and `aria-activedescendant` on the `lookup.multiple` editor.
+
+### Fixed
+
+- A lookup opened by typing could keep the opening letter after Escape closed the list and Tab moved on.
+- A page rule `* { box-sizing: border-box }` gave lookup lists a 2 px scroll bar.
+
+## DataGrid v1.10.13 — November 12, 2026
+
+`@kanunilabs/datagrid-core@1.10.13` · `@kanunilabs/datagrid@1.9.13` · `@kanunilabs/datagrid-react@1.8.13` · `@kanunilabs/datagrid-enterprise@1.10.13` · `@kanunilabs/datagrid-react-enterprise@1.9.13`
+
+_Lookups that finish the same way whoever ends the edit, code boxes that complete the code, a form lookup with loading, accessibility and dark mode, check-box sets read from each row with 64-bit values, printing every column, and a row-leaving check that sees the finished cell._
+
+### Before you upgrade
+
+- A lookup editor now opens with its list CLOSED; focusing or clicking the box no longer opens it. It opens on typing, the drop button, F4, Alt+Down, Space with `editKeys.space`, or at once with `openOnEdit`. On a touch screen, where F4 and Alt+Down are missing, consider `lookup.dropButton: true`. `LookupBox` has `openOnFocus` for the old behaviour.
+- An item reached with the arrow keys is now written by Tab and by leaving the cell, not only by Enter. A list that was only opened still writes nothing.
+- Escape that closes a lookup list now also drops what was typed.
+- In a code + name lookup (`linkedColumns`), `typeAhead` now completes the code, which is what the box shows. Set `lookup.display: 'name'` to show and complete the name.
+- `stopEditing()`, `ctx.commit()` and every other commit now run the open editor's own leaving rule first: the completed or highlighted lookup item, a cleared date. An editor opened by typing a letter that picks nothing goes back to the cell's value instead of storing that letter.
+- With `onRowLeaving`, the open cell is committed before the check is asked; if the check then refuses, focus stays on the row and the value stays written.
+- `matchFold: 'tr-loose'` and `'case-accent'` (and `searchFold`) now also fold é, ä, ñ, ł and the other Latin letters with marks.
+- `isRowLeaveBlocked(rowKey)` is now true only for a row a move was refused to during the same gesture, not whenever focus is on another row.
+
+### Added
+
+- `lookup.display` (`'code' | 'name' | 'both'`) and an item's own `code`: the box shows and completes that text, `value` can be the record's identity, and `linkedColumns.code` receives the code.
+- `matchMode` `'none'` for one field of a code + name list, for a name box that does not find codes.
+- `lookup.hoverHighlights` (default on) and `lookup.openHighlight` (`'none' | 'current'`): whether the pointer moves the highlight, and whether the list opens on the current item or the first.
+- `LookupBox`: `items={null}` or `loading` (typing is kept and checked once the list arrives, with a "Searching…" line in twelve languages), `error`, `dark`, emptying clears the value, keys it does not use reach the form, `id`, `name`, `required` and `describedBy` on the box, a "…" button that can be a Tab stop, button order and names, `--kanuni-lookup-box-height`.
+- Lookup accessibility: `aria-controls`, `aria-activedescendant` with option ids, `aria-autocomplete="both"` with `typeAhead`, `aria-keyshortcuts`; 44 px buttons on a touch screen.
+- `lookup.multiple`: a function `items` gives each row its own list and `disabled` reasons; ticking changes only that item's bit; `multiple.emptyText`; bit sets as signed 64-bit numbers, bigints or decimal strings, written back in the same type; 44 px rows on a touch screen. New helper `toggleMultipleValue`.
+- `focusedRowChanged.reason` (`'move' | 'view'`), the `rowLeaveRefused` event, and `focusRow` answering whether focus moved.
+
+### Fixed
+
+- Printing drew only the columns in view; every column is printed now.
+- A cell being edited lost its editor when the grid scrolled sideways past it.
+- A press on another row asked `onRowLeaving` before the open cell was finished, so the check did not see what was typed.
+- A touch long press never got the row menu while `onRowLeaving` was set.
+- Escape in a modal dialog that keeps the key to itself no longer leaves a lookup list open.
+- A function lookup list still loading showed a disabled box that dropped what was typed.
+
+## DataGrid v1.10.12 — November 11, 2026
+
+`@kanunilabs/datagrid-core@1.10.12` · `@kanunilabs/datagrid@1.9.12` · `@kanunilabs/datagrid-react@1.8.12` · `@kanunilabs/datagrid-enterprise@1.10.12` · `@kanunilabs/datagrid-react-enterprise@1.9.12`
+
+_Lookups that open your own picker, show their list as a table, resize and work as a form field; a check-box set in one cell; a hook that can keep focus on a row; accent-insensitive quick search; totals kept on the bottom edge; and keyboard moves that keep the row clear of the header and totals._
+
+### Before you upgrade
+
+- Enter inside a custom editor (`renderEditor`) now commits it the way it commits the built-in editor: down, or stay with `editKeys.enter`; Shift+Enter stays. Enter on a button, link, select, text area or an open combo box inside the editor is still that element's. An editor that uses Enter itself calls `event.preventDefault()` in its handler, as it already does for Escape and Tab.
+- F4 in a lookup editor now opens and closes its list; before, it went on to the page. Alt+Down opens it and Alt+Up closes it.
+- The plain JavaScript grid now focuses the clicked cell before it selects the row, as the React grid does, so `focusChanged` comes before `selectionChanged` on a click.
+
+### Added
+
+- `onRowLeaving(from, to)`: asked before focus leaves a row by any road (a click, the arrow keys, Tab, Enter, `focusCell`, `focusRow`, `moveFocus`, `clearFocus`). Return `false` to keep focus there, and the click selects nothing either; return a Promise to decide later, after a server check or a dialog. `focusCell` now answers whether focus moved.
+- `searchFold` (default `'case'`, as before): quick search and find fold text in the lookup editors' `matchFold` modes; `'tr-loose'` makes "siparis" find "Sipariş" and marks the match. `controller.setSearchFold` changes it on a live grid.
+- `pinFooterToBottom` (default off): the totals row stays on the grid's bottom edge when the rows end higher.
+- `lookup.onPickerOpen` (React): a "…" button in the open editor, and Ctrl+Enter, open your own picker. The item it resolves with is written like a pick from the list, `linkedColumns` included; while it is open, focus leaving the grid neither commits the cell nor sends the row.
+- `lookup.listColumns` and `lookup.dropButton` (React): the list as a table with a header row, and a ▾ button that opens it.
+- `lookup.listResizable` (React): a grip on the open list's corner to make it wider and taller, kept per column until the page reloads.
+- `LookupBox` (React Enterprise): the cell's lookup editor as a form field, with the same list, matching and keys.
+- `lookup.multiple` (React editor): several items in one cell, as an array or a bit set (`{ bits: true }`). The cell shows the picked items' `short` labels joined with `;`; the editor is a list of check boxes, and an item with `disabled` cannot change.
+- `numberFormat.restrictInput` (React, default off): typing that can never become a number in the column's locale is refused as it is typed; a paste is taken when the whole text reads as a number.
+- `rawValue` in the `renderEditor` context: the column's stored field, before `valueGetter`.
+
+### Fixed
+
+- A row behind the totals row was taken for visible, so a row added with ArrowDown at the end stayed under the totals. Keyboard moves, `scrollToRow` and `scrollToCell` now keep the row between the header and the totals row.
+- With `lookup.typeAhead` and `lookup.openOnEdit`, the letter that opened the editor was not completed.
+- Best fit (all columns) left the widths of columns scrolled out of view unchanged.
+- The grids threw where there is no `CSS` global, as in some test environments.
+
+## DataGrid v1.10.11 — November 5, 2026
+
+`@kanunilabs/datagrid-core@1.10.11` · `@kanunilabs/datagrid@1.9.11` · `@kanunilabs/datagrid-react@1.8.11` · `@kanunilabs/datagrid-enterprise@1.10.11` · `@kanunilabs/datagrid-react-enterprise@1.9.11`
+
+_Lookup editors that complete the typed text in the box and pick the closest item with Tab or Enter, like a desktop lookup combo._
+
+### Added
+
+- `lookup.typeAhead` (default off): when the label of an item starts with the typed text, the box shows that label with the added part selected and the item is highlighted. Enter, Tab and leaving the cell write the highlighted item; Tab then moves on. Text that matches nothing writes nothing. With `matchMode: 'contains'` and no label starting with the text, nothing is completed and the first match is highlighted. Backspace removes the completed part and does not complete again, and an input method word is completed once it is finished. Ignored with `allowCustom`.
+
+## DataGrid v1.10.10 — November 5, 2026
+
+`@kanunilabs/datagrid-core@1.10.10` · `@kanunilabs/datagrid@1.9.10` · `@kanunilabs/datagrid-react@1.8.10` · `@kanunilabs/datagrid-enterprise@1.10.10` · `@kanunilabs/datagrid-react-enterprise@1.9.10`
+
+_Lookup editors that open their list at once, reject text with no match while typing and ignore accents, drag selection that scrolls the grid at its edge, and printed pages that repeat the column headers._
+
+### Before you upgrade
+
+- Dragging a range selection with the mouse now scrolls the grid on its own when the pointer reaches or leaves the scroll area. There is no option: it is the default behaviour. Pinned columns stay in place.
+- Printing from the browser (`window.print()`) with `printLayout` now repeats the column headers on every page. Set `printLayout.repeatHeader: false` to get the old single header. During printing the grid is briefly swapped for an equivalent table, and it is put back afterwards.
+- `exportToPdf` no longer splits a row across two pages.
+
+### Added
+
+- `lookup.openOnEdit` (default off): the editor starts with its list open, however it was started. When typing started it, the list is already filtered by that character and the caret sits after it.
+- `editKeys.space` (default off): Space on a focused lookup cell opens its editor.
+- `lookup.restrictInput` (default off): text that matches no item (by `matchMode`) is refused as it is typed, pasted or dropped. Deleting is always allowed and input method composition is checked once it ends. Ignored with `allowCustom`.
+- `lookup.matchFold`: `'none' | 'case' | 'case-accent' | 'tr-loose'`. The default is `'case'`, as before; `'case-accent'` also ignores accents ("cay" finds "Çay") and `'tr-loose'` also treats ı and i as one letter.
+- `printLayout.repeatHeader` (default on): column headers, grouped ones included, repeat on every printed page.
+
+### Fixed
+
+- Selecting a range with the mouse did not scroll a grid wider or taller than the screen.
+- Printed pages could cut a row in two.
+
+## DataGrid v1.10.9 — October 31, 2026
+
+`@kanunilabs/datagrid-core@1.10.9` · `@kanunilabs/datagrid@1.9.9` · `@kanunilabs/datagrid-react@1.8.9` · `@kanunilabs/datagrid-enterprise@1.10.9` · `@kanunilabs/datagrid-react-enterprise@1.9.9`
+
+_In-cell editing for document forms in React: the app reaches the editing engine, rows read new and removed, a locale-aware number editor, code + name lookups, a custom-editor contract for picker dialogs, a configurable keyboard with a key hook, one save per row in cell mode, row class names and tappable cards._
+
+### Before you upgrade
+
+- With `rowStatus` on, an added row now reads `new` and a row marked for removal reads `removed` (both used to read `changed`). They have their own colours, `--dg-row-status-new` and `--dg-row-status-removed`, and with `icons` a plus and a cross.
+- After a successful `onSave`, removed rows leave the grid's data, as they already did with `crud`. A row your `onSave` already took out of your own state, or a new `dataSource`, is left alone.
+- A successful save takes what it sent out of the undo history: in `batch` everything up to that save, in `cell` the saved change. Ctrl+Z no longer brings back a change the server already has.
+- The built-in editors no longer stop F1-F12 and the Ctrl / Alt combinations they do not use, so page shortcuts see them while a cell is being edited. The grid ignores a key whose event is already `defaultPrevented` and any combination with Alt (AltGr typing still opens the editor): Alt+PageDown no longer scrolls the grid.
+- A `renderEditor` editor: Escape now cancels it and Tab on its last focus stop commits and moves to the next cell, unless the editor calls `preventDefault()` on the key. Tab used to leave the grid, Escape did nothing.
+- A lookup column with `allowCustom` is edited with the grid's own dropdown instead of the browser's `<datalist>`. A lookup whose list is empty also gets the dropdown (it used to fall back to a text box that accepted any value).
+- On touch screens (`pointer: coarse`) every cell and form editor uses at least a 16 px font, and lookup items are 44 px tall, so iOS does not zoom in on focus.
+- Tapping or clicking a card in `cardView` now focuses its row, so `onFocusedRowChanged` fires for cards. Cards are at least 44 px tall.
+- Turkish: the "no match" text of the lookup editor (`editNoMatch`) reads "Kayıt bulunamadı". The other languages are unchanged.
+- On a page without a secure context (plain HTTP) Ctrl+V now pastes, through the browser's own paste event. It did nothing there before; secure pages are unchanged.
+- Two row-status colours were raised to a 3:1 contrast against the row: `saving` in the kanuni theme and `error` in the dark nord scheme.
+
+### Added
+
+- `editing.onReady(api)` and `controller.editing`: the `EditingApi` — `hasChanges`, `getChanges`, `saveChanges`, `cancelChanges`, `addRow`, `removeRow`, `restoreRow`, `isRemoved`, `getRowStatus`, `getRowStatusError`, `getErrorRowKeys`, `effectiveRow`, `undo` / `redo`, `isDirty`, `revertRow`, `revertCell`, `setRowValues`.
+- `SaveRejected`: throw `new SaveRejected([{ rowKey, columnId?, message }])` from `onSave` to mark the rows the server refused; `SaveResult.rows` lists them and nothing is counted as saved.
+- The `changesChanged` event (`{ dirty, count }`), `editing.batchBar: false` and `editing.history: false`.
+- With `rowKey` set to a field, a row added by `addRow`, Insert, arrow-down or Tab keeps the key the app gives it in `onInitNewRow`; the grid no longer writes its own temporary key over it.
+- `rowStatus`: the `new` and `removed` statuses and `rowStatus.strike`.
+- `numberFormat` on a column: `locale`, `decimals`, `min`, `max`, `step`, `allowNegative`, `thousands`. The editor reads "1.234,5" in Turkish, refuses "1.5" instead of guessing, rounds to `decimals`, opens the decimal keyboard on phones and steps with the arrow keys.
+- Typing `-` or the decimal separator on a focused number cell, or a digit on a date cell, opens its editor.
+- `renderEditor` context: `commit({ move })`, `suspendBlurCommit(on)`, `commitOnBlur`, `api.setRowValues(values)`, `rowKey`, `ariaLabel`, `invalid`, `errorId` — for a "…" button that opens a picker dialog and writes several fields in one step.
+- Lookup: `linkedColumns: { code, name, id }`, `matchMode: { code, name }`, `map(item)`, `autoCompleteSingle` and `onNoMatch`. A function `items` list now shows labels in the closed cell; a dependent list clears a value that is no longer in it.
+- Keyboard: `editing.editKeys` (`f2`, `enter`, `typing`, `doubleClick`), `insertKey: 'above' | 'below'`, `appendOnTab`, `deleteKey` (Ctrl+Delete, asks `confirmDelete`), `fillKeys` and `rangePaste`, and the grid-level `onKeyDown(event, ctx)` hook.
+- `editing.commitOn: 'row'`: in cell mode a row is saved once, when the user leaves it; a new row nothing was written into is dropped instead of sent.
+- `rowClassName({ row, node, rowKey, status, index })` on both React grids.
+- `cardView.onCardPress`, `renderCard`, `height` and `edit: 'popup'` (React).
+
+### Fixed
+
+- Arrow-down on the last row added a row and then moved the focus to the first row.
+- A double tap did not reliably open an editor on touch screens; the grid now counts the second tap itself.
+- A card showed the stored value instead of a pending `batch` value, and a function lookup's code instead of its label.
+- Lookup items overlapped by 8 px because of their padding.
+
+## DataGrid v1.10.8 — October 29, 2026
+
+`@kanunilabs/datagrid-core@1.10.8` · `@kanunilabs/datagrid@1.9.8` · `@kanunilabs/datagrid-react@1.8.8` · `@kanunilabs/datagrid-enterprise@1.10.8` · `@kanunilabs/datagrid-react-enterprise@1.9.8`
+
+_In a short box the grid keeps its rows before the docked chart keeps its smallest size, a plain Excel file carries the column formats, and the header filter's value list is one Tab stop._
+
+### Before you upgrade
+
+- A plain Excel export (`styled: false`) now writes each column's number format — its `excelFormat`, `yyyy-mm-dd` for a date column, a thousands separator for a number column. Dates used to come out in Excel's own mm-dd-yy. Alignment, banded rows, the outline and the totals row still need `styled`.
+- In a box too short for the chart toolbar as it wraps, the smallest chart and 80 px of rows, the docked panel carries `data-dock-compact`: its toolbar keeps to one line that scrolls sideways, and the chart may be shown below 120 px. The height kept in the chart state is unchanged.
+- In the header filter only the active value is in the Tab order (the list itself while that value is scrolled away); the arrow keys, Home / End and Space work as before.
+
+### Added
+
+- `chartDockLayout` in the core: how the docked chart is shown in the box it shares with the grid, compact or not.
+
+### Fixed
+
+- The docked chart was fitted before its toolbar wrapped and only again when the box resized, leaving the grid 20-50 px of rows; the panel's own size is watched too.
+- In a short box the chart's 120 px minimum and a wrapped toolbar left the grid fewer than 80 px of rows, or none.
+- A plain Excel file ignored `excelFormat`.
+- Every value in the header filter was a Tab stop of its own: a list of 30 took 30 presses of Tab to reach Apply.
+- End in a long header filter list could not reach the last value (React), and dropped the focus on the page (plain JavaScript).
+
 ## DataGrid v1.10.7 — October 29, 2026
 
 `@kanunilabs/datagrid-core@1.10.7` · `@kanunilabs/datagrid@1.9.7` · `@kanunilabs/datagrid-react@1.8.7` · `@kanunilabs/datagrid-enterprise@1.10.7` · `@kanunilabs/datagrid-react-enterprise@1.9.7`
