@@ -398,7 +398,7 @@ _A third value for the Values and Columns zones: `layout.areaChipOverflow: 'shri
 
 `@kanunilabs/pivotgrid-core@1.11.6` · `@kanunilabs/pivotgrid@1.6.6` · `@kanunilabs/pivotgrid-react@1.8.6` · `@kanunilabs/pivotgrid-enterprise@1.7.6` · `@kanunilabs/pivotgrid-react-enterprise@1.8.6`
 
-_Round 5 of Tekax's requests: the drag ghost above the field list window, a resize guide line that stays under the pointer when the pivot is scrolled or zoomed, a double click on a column edge that fits the column, a text clip setting, font-weight variables, a context menu that ends at the pointer, no focus flash on the first cell; then lines at the end of every row-header group (opt-in), Values and Columns zones on one scrolling line (opt-in), a drop between two row-header chips that lands between them, an unpinned table with its vertical scrollbar at the pivot's edge, data rows kept in view in a short, zoomed pivot, and the focus kept in the pivot after an undo from the data pane._
+_Round 5 of customer requests: the drag ghost above the field list window, a resize guide line that stays under the pointer when the pivot is scrolled or zoomed, a double click on a column edge that fits the column, a text clip setting, font-weight variables, a context menu that ends at the pointer, no focus flash on the first cell; then lines at the end of every row-header group (opt-in), Values and Columns zones on one scrolling line (opt-in), a drop between two row-header chips that lands between them, an unpinned table with its vertical scrollbar at the pivot's edge, data rows kept in view in a short, zoomed pivot, and the focus kept in the pivot after an undo from the data pane._
 
 ### Before you upgrade
 
