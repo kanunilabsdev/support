@@ -10,6 +10,621 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## PivotGrid v1.11.16 — November 23, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.16` · `@kanunilabs/pivotgrid@1.6.16` · `@kanunilabs/pivotgrid-react@1.8.16` · `@kanunilabs/pivotgrid-enterprise@1.7.16` · `@kanunilabs/pivotgrid-react-enterprise@1.8.16`
+
+_Very large pivots: the node menu's "Collapse all" no longer needs more memory than the open tree it closes, a large collapsed state is saved as one compact entry, and feeding rows into a fully expanded report no longer holds two whole trees at once._
+
+### Before you upgrade
+
+- `maxLiveOpenNodes` is on by default (500,000): while rows stream into a fully expanded report (`'*'`) whose tree is larger than that, live computes are held back; the screen keeps its last result, `isComputing` stays true, and the full result is computed when the feed ends (`flushAsyncTransactions()`, `setLoading(false)`), on any change by the reader or your code, for an export, or after about 2 seconds without new rows. Pass `maxLiveOpenNodes={0}` (or `Infinity`) for the behaviour of 1.11.15. Smaller reports are not affected.
+- React grids and Enterprise grids: with more than 5,000 row groups closed under "Expand all", the saved state (`getPersistedState`, `stateStoring`, saved views) holds the closed rows as one text entry inside `expandedPaths` instead of one entry per group. The entry is plain text and survives `JSON.stringify`; treat it as opaque and pass `expandedPaths` back as you received it. Code that reads or filters the strings in `expandedPaths` should read `isExpanded` on the result's nodes instead. With fewer closed groups the state is saved exactly as before.
+- A state saved in that compact form and opened by 1.11.15 or older opens with its rows collapsed (nothing throws). Update every install together if reports are shared.
+- `getState().expandedPaths` is the live set, not a saved state: while the closed rows are kept compactly it holds `'*'` and one handle. A copy handed back to `setExpandedPaths` on the same page restores the rows; stored and read in another session it opens every row and reports through `onError`. Use `getPersistedState()` or `stateStoring` to keep the open rows across sessions.
+
+### Added
+
+- `maxLiveOpenNodes` (on by default, 500,000; `0` or `Infinity` turns it off): the most row nodes a live-update compute may build while rows stream into a fully expanded report. See the Large data guide.
+- `layout.rowFieldChips: 'aligned' | 'packed'` (default `'aligned'`, today's look): `'packed'` puts the row-field chips side by side with a small gap instead of one chip per column width. Columns keep their widths and their resize grips. React and plain JS; not saved with the state.
+- The theming guide shows how to paint the empty band under the row headers with `--pivot-row-area-empty-bg` (React).
+
+### Changed
+
+- React and Enterprise grids: the node menu's "Collapse all" on a large expanded tree keeps the closed rows as one bit per group instead of one text entry per group, sends the worker one command, and gets back only the rows that are still visible. Measured in Node on 300,000 rows with a per-row field in the middle of the row fields (906,000 groups): the main-thread heap peaks at 945 MB instead of about 1,900 MB and settles at 238 MB instead of about 1,700 MB, in 1.5 s. The meaning is unchanged: groups that existed are closed, and a member or a level that arrives later comes open.
+- The same closed rows are saved as one compressed text entry: on that report about 3.3 MB of JSON instead of 54 MB, restored in about 1 s instead of 7 s, with a peak of 192 MB instead of 1,091 MB. A save right after opening or closing one branch adds the change to the entry instead of compressing the tree again.
+- Moving, adding or removing a field, a filter, a data refresh and undo carry the closed rows over without turning them back into text. Closed groups the current data does not hold are remembered and come back closed.
+- The compact form is not used (the grid works as in 1.11.15) while a search is active, with a row top-N, value or label filter, a colour scale or other range-based conditional format, a running total or difference display, a `serverSource`, or member texts containing `|`; nor in the free plain-JavaScript grid and the Angular wrapper. When the search or the setting is removed the grid returns to the compact form.
+
+### Fixed
+
+- A grid with `stateStoring` disabled no longer serialises its whole state on every change.
+
+## PivotGrid v1.11.15 — November 21, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.15` · `@kanunilabs/pivotgrid@1.6.15` · `@kanunilabs/pivotgrid-react@1.8.15` · `@kanunilabs/pivotgrid-enterprise@1.7.15` · `@kanunilabs/pivotgrid-react-enterprise@1.8.15`
+
+_Very large pivots: every row of a pivot taller than the browser's layout limit is reachable, loading by feed is no longer quadratic, and the worker needs about half the memory to compute an opened pivot._
+
+### Before you upgrade
+
+- Nothing to change for a grid that worked on 1.11.14. Expanding, collapsing and the saved state behave and are stored exactly as before.
+- Above 12,000,000 px of rows (about 570,000 rows at 21 px) the body keeps that height and the scroll position maps to the rows, so one pixel of the scrollbar is more than one row there; the wheel, the keyboard and the saved scroll position move by rows as before. Below that height nothing changes.
+- Free plain-JavaScript grid only: four Enterprise button captions (Filter Builder, Toggle Chart View, Calculated Measure Designer, Edit Calculation) left the shared dictionary of the script-tag bundle. Enterprise grids show them in every language as before; a free grid whose app fills those buttons itself shows them in English unless its `dictionary` names them.
+
+### Added
+
+- `maxRestoredOpenNodes` and `onRestoredExpansionCollapsed` (off by default): an app can set a limit on the row nodes a restored open state may make the grid hold. Over it, the report opens collapsed, the saved open state is emptied and the app is told. What the reader opens is never limited. See the Large data guide.
+
+### Changed
+
+- A feed that only adds rows (`applyTransactionAsync({ add })`) no longer walks the whole row tree after every batch. The cost grew with the square of the row count: with a per-row field in the middle of the row fields, 2 million rows took 250 s to load instead of 75 s. In the engine alone, adding 400,000 rows in batches of 2,000 fell from 11.0 s to 0.9 s.
+- Computing the data cells in the worker no longer builds a JavaScript Map or doubling arrays: on 1 million rows with every level open it is about three times faster and needs about half the peak memory (440 MB to 213 MB; with two column fields 1,420 MB to 523 MB). Results are bit-identical.
+- Building the pivot in the worker finds each row's group through a typed table instead of a JavaScript Map: about a quarter faster on 1 million distinct rows, with less memory.
+
+### Fixed
+
+- A pivot whose rows are taller than the browser can lay out (about 1.6 million rows at 21 px in Chrome) can now be scrolled to its last row. The keyboard, the wheel and the saved scroll position follow the same mapping, and screen readers still get the real row numbers.
+- `expandAll({ allLevels: true })` sets `isComputing` when it is called. It used to stay false while the worker counted the groups, so code that waited for the calculation right after the call saw an idle grid.
+
+## DataGrid v1.10.20 — November 21, 2026
+
+`@kanunilabs/datagrid-core@1.10.20` · `@kanunilabs/datagrid@1.9.20` · `@kanunilabs/datagrid-react@1.8.20` · `@kanunilabs/datagrid-enterprise@1.10.20` · `@kanunilabs/datagrid-react-enterprise@1.9.20`
+
+_The header filter and the cell menu no longer close by themselves right after opening when the click had to scroll the grid first._
+
+### Before you upgrade
+
+- Nothing to change. One difference: a context menu taller than the screen no longer closes when the wheel scrolls the menu itself.
+
+### Fixed
+
+- React: the header filter, the custom filter and the cell menu no longer close by themselves when a click scrolls the grid to reveal the column or cell just before they open. Chrome reports that scroll one frame later, after the popup is up, and the popup took it for a scroll of the page. A scroll reported before the first frame after opening is now ignored; any later scroll outside the popup closes it as before.
+- Popups, menus and dialogs take focus without scrolling the page or the grid (React and plain JavaScript).
+
+## PivotGrid v1.11.14 — November 21, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.14` · `@kanunilabs/pivotgrid@1.6.14` · `@kanunilabs/pivotgrid-react@1.8.14` · `@kanunilabs/pivotgrid-enterprise@1.7.14` · `@kanunilabs/pivotgrid-react-enterprise@1.8.14`
+
+_Large data in the browser: a new Enterprise `columnar` option keeps the rows as typed columns instead of row objects, so 1–2 million rows fit, and "Collapse all", the saved state and the calculation worker use far less memory on a pivot with a per-row field among the rows._
+
+### Before you upgrade
+
+- Without `columnar` (Enterprise) the grid keeps your row objects and behaves as in 1.11.13, with one difference: a `{ columns, rows }` chunk given to a grid that is not columnar now throws instead of silently adding nothing.
+- With `columnar`, rows arrive as `{ columns, rows }` chunks (or as row objects, which are encoded and not kept) through `data`, `setData` and `applyTransaction(Async)({ add })`; `update` and `remove` throw in this mode for now, and `columnar` cannot be changed after the grid is built. A row-level `calculateExpression` receives a reused, read-only row: read values from it, do not keep it or write to it. `getRecordsForSelection()` and `cellClick` records still work: up to 50,000 rows they are an array built at once, above that a read-only list whose rows are built when read; for a large selection use a row source (`getSelectionRowSource()`).
+- The data rule, in both modes: a new `data` value (an array, an empty array, or a chunk with new `rows` / `columns` arrays) replaces every row and drops adds still queued by `applyTransactionAsync`; the same value again changes nothing. Memoize a chunk you pass as a prop: a fresh `[]` or chunk on every render clears the streamed rows on every render (the grid warns once).
+- `stateStoring` / `onSave` is now called only when a saved part changes (fields, layout, column widths, open groups), not on every result or progress tick. Code that used `onSave` as a "something happened" signal must listen to the grid's events instead.
+- After "Collapse all" from a header menu with everything expanded, a last-level row's menu says "Collapse" (the click changes nothing, as before), and a field appended at the end of the rows afterwards shows that new level open. States saved by 1.11.13 that hold an entry per leaf keep those entries until the next "Expand all".
+- The exported `FastTrie`'s `childrenMap` is now built when read and is read-only.
+
+### Added
+
+- Enterprise: `columnar` keeps the rows in a column store on the main thread (about 230–400 bytes per row instead of the size of your row objects). Selection details, custom summaries, row-level calculated fields, filters, exports and hidden React tabs work as in row mode; every feature is tested against row mode on the same data. See the new Large data guide.
+- Enterprise: row sources read the rows behind a selection or a cell page by page, with or without `columnar`: `getSelectionRowSource()` on the React ref, `selectionRowSource`, `cellRowSource`, `rowStoreOf`. `toRowArray()` gives a DataGrid one small row handle per row, so sorting, the header filter, Excel export, column moves, range totals and copy work as over plain rows. The drill-down windows accept a row source and build only the page on screen.
+
+### Changed
+
+- "Collapse all" from the row or column header menu no longer writes a closed-branch entry for every leaf when everything was expanded: at 250k rows with a per-row field the step took 3.5 s and peaked 1.35 GB above where it started; it now takes 1.5 s and about 120 MB. What is shown, re-opening a branch and the saved state format are unchanged.
+- The calculation worker keeps no text path and no map per group: with a per-row field (a barcode) among the row fields its memory fell from 269 MB to 14 MB at 250k rows, and rearranging the row fields takes half the time. Results are bit-identical.
+- The open-group comparison no longer builds and keeps a sorted copy of every open path.
+
+### Fixed
+
+- The grid state was saved on every state change, also when nothing saved had changed: one collapse called `onSave` five times with the same state.
+- React: a recompute kept the previous result alive through the column resize handles.
+- React Enterprise: leaving out `data` handed the grid a new empty array on every render.
+- After a rebuild that failed, the next compute could answer with empty cells instead of the error.
+- New `data` given while a large first build was still running, followed by `applyTransactionAsync` adds, left the grid empty: the adds waited for a build of the replaced rows. A refresh that clears the data and streams the new rows right away could hit this.
+
+## DataGrid v1.10.19 — November 21, 2026
+
+`@kanunilabs/datagrid-core@1.10.19` · `@kanunilabs/datagrid@1.9.19` · `@kanunilabs/datagrid-react@1.8.19` · `@kanunilabs/datagrid-enterprise@1.10.19` · `@kanunilabs/datagrid-react-enterprise@1.9.19`
+
+_`rowSourceDataSource` serves the lazy row model from an indexed row source, such as the rows behind a PivotGrid selection._
+
+### Before you upgrade
+
+- Nothing changes for grids over plain rows. Column inference (a grid without `columns`) now also reads inherited enumerable getters when a row has no own keys, so rows that are handle objects get their columns.
+
+### Added
+
+- `rowSourceDataSource(source)` serves the lazy (remote) row model from an indexed row source (`rowCount` and rows by range), with the client model's own filtering, search and sort. With a remote model a range selection covers only the rows already loaded; to show every row of a PivotGrid selection with complete range totals and copy, pass the row source's `toRowArray()` as `data` instead.
+
+## PivotGrid v1.11.13 — November 19, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.13` · `@kanunilabs/pivotgrid@1.6.13` · `@kanunilabs/pivotgrid-react@1.8.13` · `@kanunilabs/pivotgrid-enterprise@1.7.13` · `@kanunilabs/pivotgrid-react-enterprise@1.8.13`
+
+_A pivot shown again after React hid it no longer recomputes when nothing changed, and `layout.rowHeaderToggle: 'button'` lets a click on a row header select it without opening or closing the group._
+
+### Before you upgrade
+
+- A grid shown again after `<Activity mode="hidden">` with nothing changed fires no `engineStarted` / `engineCompleted` and keeps `isComputing` false; code that waited for a compute on every show must not. After a hide longer than the worker's 5 s keep-alive, the engine starts again with the first change that needs it, not on show.
+- The built-in language objects (`en`, `tr`, ...) no longer carry `systemError`, `noConditionsAdded`, `exportGeneratedOn`, `saveChanges` and `loadingData` (read them with `pivotExtraText(locale, key)` from `@kanunilabs/pivotgrid-core`) nor the unused `type_*` texts. The grids show the same text, and a `dictionary` you pass still overrides them.
+- `layout.rowHeaderToggle` defaults to `'cell'`: nothing changes unless you set `'button'`. It is an app option and is not saved with the grid state.
+
+### Added
+
+- `layout.rowHeaderToggle: 'cell' | 'button'`. With `'button'`, a click or tap on a row-header cell or on a collapsed group's label only selects it, and only the +/− box opens and closes the group, so a header can be selected for Selection Details or Ctrl+C without collapsing it. Space still toggles from the keyboard. On touch screens the box has a 44 px wide hit area, as tall as the row. React and plain JS.
+- `pivotExtraText(locale, key)` in `@kanunilabs/pivotgrid-core`.
+
+### Changed
+
+- A grid shown again after React hid it (`<Activity mode="hidden">`) no longer recomputes when nothing changed while it was hidden: the last result is shown at once and no request reaches the worker. Shown within 5 s, the worker is kept; toggles under expand-all, selection, `getCell` and exporting the current view work without it.
+- When something did change while the grid was hidden, the result on screen stays up and is replaced when the new one is ready, as for live updates: no loading overlay on show, and `isComputing` is true until then.
+
+### Fixed
+
+- A filter changed while the grid was still building (for example a saved state that an asynchronous `stateStoring.onLoad` returned late) was not applied: the grid could show unfiltered numbers under a correct filter chip.
+- On touch screens a row-header cell no longer lets a long `cellTemplate` or the tree layout's connector line draw out of its cell.
+
+## PivotGrid v1.11.12 — November 19, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.12` · `@kanunilabs/pivotgrid@1.6.12` · `@kanunilabs/pivotgrid-react@1.8.12` · `@kanunilabs/pivotgrid-enterprise@1.7.12` · `@kanunilabs/pivotgrid-react-enterprise@1.8.12`
+
+_A React PivotGrid hidden by `<Activity mode="hidden">` (a kept-alive tab) comes back with its rows, layout and result instead of staying on "Loading" or showing the totals of the first rows only._
+
+### Before you upgrade
+
+- React: a grid inside `<Activity mode="hidden">` is suspended, not disposed, and recomputes when shown. React sets `ref.current` to `null` while a grid is hidden, so a feed that calls `ref.current?.applyTransactionAsync(...)` drops rows while the tab is hidden: keep the controller from the new `onReady(controller)` prop or `getController()` instead.
+- React: an unmounted grid is still disposed. A grid unmounted while hidden is disposed after two missed 5 s checks; a grid whose hidden element a tab host removed from the page is rebuilt with its layout when shown (a reset, not a dead grid).
+- Each live grid now has its own engine worker, also two grids with the same or no `gridId`. Saved reports, the stored layout and popup sizes are still kept per `gridId`, so give each kept-alive tab's pivot its own stable `gridId`.
+- A request still waiting on a released engine worker now rejects with an `AbortError` instead of staying pending; an export started while a grid is suspended rejects the same way.
+
+### Added
+
+- `suspend()`, `resume()`, `isSuspended()`, `isDisposed()` and `getEngineKey()` on `PivotController`, and an `onReady(controller)` prop on the React grids, called once per controller.
+
+### Fixed
+
+- React: a pivot inside `<Activity mode="hidden">` was disposed by its effect cleanup and never rebuilt, so after the tab came back it stayed on "Loading", or reported done with the result of the first rows only. It now keeps its rows, layout, open branches, last result, queued transactions and listeners while hidden, and while it has changes it has not computed `isComputing` stays `true`: a hidden grid never reports a partial result as done.
+- React: an open field chooser, menu or window of a grid hidden by `<Activity>` is hidden with it.
+- Calling a disposed controller logs a warning once instead of doing nothing silently.
+- Two live grids with the same or no `gridId` could share one engine worker and show each other's numbers.
+
+## DataGrid v1.10.18 — November 19, 2026
+
+`@kanunilabs/datagrid-core@1.10.18` · `@kanunilabs/datagrid@1.9.18` · `@kanunilabs/datagrid-react@1.8.18` · `@kanunilabs/datagrid-enterprise@1.10.18` · `@kanunilabs/datagrid-react-enterprise@1.9.18`
+
+_A React DataGrid hidden by `<Activity mode="hidden">` keeps its sort, filters, grouping, selection, scroll position and unsaved edits; and the context menu no longer offers a Paste that cannot work on a plain-HTTP page._
+
+### Before you upgrade
+
+- React: `onReady` is called once per controller: not again on a re-render, on StrictMode's re-mount or when a hidden grid is shown, so listeners added there are added once. Code that relied on an inline `onReady` running after every render must move that work into an effect.
+- React: `useDataGrid(options, { attachedTo })` takes the grid's root element as a second argument; without it the hook keeps its old behaviour and a hidden grid is rebuilt when shown. A grid whose hidden element a tab host removes from the page is still reset, and warns once in the console if it held unsaved edits.
+- Enterprise: `styledExport` now merges its two keys into the Excel export defaults instead of replacing them, so defaults set in `onReady` (`stream`, `fileName`, `sheetName`) are kept.
+- Enterprise: on a plain-HTTP page (no secure context, or no `navigator.clipboard.readText`) the context menu no longer shows Paste; Ctrl/Cmd+V works as before. A Paste item you list yourself in `rowMenu` is not hidden.
+
+### Added
+
+- `useHideWithGrid(ref)` hides an app's own portalled layer together with the grid, and `controller.getExportDefaults(format)` reads the current export defaults.
+
+### Fixed
+
+- React: a grid inside `<Activity mode="hidden">` was disposed and rebuilt when shown, losing sort, filters, grouping, selection, scroll position, rows changed through the API and unsaved batch or row edits. It now keeps its controller; a real unmount disposes it as before (`gridPreDestroyed`, a viewport source's `destroy()`), and a grid unmounted while hidden is disposed after two missed 5 s checks.
+- React: hiding a grid neither saves nor discards an open editor; the editor gets its focus back when the grid is shown, and in row mode a row is not sent because the tab was switched.
+- React: popups rendered through a portal (filter, menus, calendar, lookup lists, dialogs, a chart in the app's container) stay on screen no longer when the grid is hidden.
+- Enterprise: the context menu's Paste read the async clipboard, which a plain-HTTP page does not have, so it could only fail; it is no longer offered there.
+
+## DataGrid v1.10.17 — November 17, 2026
+
+`@kanunilabs/datagrid-core@1.10.17` · `@kanunilabs/datagrid@1.9.17` · `@kanunilabs/datagrid-react@1.8.17` · `@kanunilabs/datagrid-enterprise@1.10.17` · `@kanunilabs/datagrid-react-enterprise@1.9.17`
+
+_Long lists without a blank body on a jump to the end: draw every row (`virtualization.mode: false`, or `'auto'` under a threshold), or show row-height placeholder lines while the rows catch up (`virtualization.placeholderRows`); and copy, cut and paste that work on a plain-HTTP page, with `onCopy` / `onCopyError` (PivotGrid's names) to tell the app what became of a copy._
+
+### Before you upgrade
+
+- Nothing changes unless you set `virtualization.mode` or `virtualization.placeholderRows`: with neither, the grid draws the same rows, the same DOM and the same styles as in 1.10.16.
+- A `virtualization.overscanY` that is not a finite number of 0 or more (`-1`, `NaN`) now means the default 5; before, a negative one meant 0. The same holds for the new `threshold` (default 2000).
+- Every copy (Ctrl/Cmd+C, Ctrl/Cmd+X, the menu's Copy items, `writeClipboardText`) is written through the browser's copy event or `execCommand('copy')` first and `navigator.clipboard` only last, and it writes an HTML table (`text/html`) next to the tab-separated text, so a paste into Excel or Word keeps the cells; a paste into a plain text field gets the same text as before. A copy that is not a key's own reaches the clipboard one task later than before. Ctrl/Cmd+C still copies only while the keyboard focus is in the grid and not in a text field, as before. With `clipboard.sendToClipboard` nothing changes: the app gets the text and the system clipboard is left alone.
+- `controller.writeClipboard(text)` answers `true` whenever there is text to write, also where no clipboard turns out to exist (it answered `false` on plain HTTP); the outcome arrives through `onCopy` / `onCopyError`. A copy with nothing to copy now calls `onCopyError` with `'empty-selection'`.
+- Plain JS Enterprise: Ctrl/Cmd+V on a plain-HTTP page no longer prevents the key; for that one key the focus moves to an off-screen text area inside the grid and comes back, as in the React grid. A `focusin` / `focusout` listener of the app inside the grid sees that move. On HTTPS and localhost nothing changes.
+- Ctrl/Cmd+C with no row selected or focused while text is selected on the page (with the mouse, in the grid or outside it) no longer calls `onCopyError` with `'empty-selection'`: the browser copies the text and the grid keeps out of it, as PivotGrid 1.11.10 does. `hasPageTextSelection()` is exported from `@kanunilabs/datagrid-core`.
+- A page-level `copy` listener of the app now sees the grid's copies: Ctrl/Cmd+C and the menu's Copy items go through a real (or, for the menu, an `execCommand`-made) `copy` event, which the grid answers in the capture phase; a listener of the app that calls `clipboardData.setData` in the bubble phase writes over the grid's data and wins. Because a copy also writes an HTML table (`text/html`), a single copied cell pastes into Word or Outlook as a 1×1 table, not as plain text (the same in PivotGrid 1.11.10); a plain-text paste (Ctrl+Shift+V) gives the text.
+
+### Fixed
+
+- Ctrl/Cmd+C, the menu's Copy items and Ctrl/Cmd+X copied nothing on a plain-HTTP page (`http://10.0.x.x`): `navigator.clipboard` exists only on HTTPS and localhost, and the failure was swallowed. The copy now goes into the browser's copy event that follows the key, which every page has, and a copy that comes with no key event (the menu, `copySelection()`, a cut) through `execCommand('copy')`; `navigator.clipboard` is the last resort. A copy that still fails calls `onCopyError` (React, plain JS and both Enterprise wrappers).
+- Ctrl/Cmd+V of the plain JS Enterprise grid pasted nothing on a plain-HTTP page: it read `navigator.clipboard`, which is not there, and swallowed the failure. It now takes the text from the browser's own paste event, as the React grid already did. The menu's Paste item still reads `navigator.clipboard`: a browser hands the clipboard to a page only on the user's own Ctrl/Cmd+V, so on plain HTTP that item cannot paste; the key does.
+
+### Added
+
+- `virtualization.mode` (`true` | `false` | `'auto'`, default `true`): `true` virtualizes the rows as before; `false` draws every row at once, so a jump to the end or a fast fling never shows an empty body; `'auto'` draws every row while the view has at most `virtualization.threshold` rows (default 2000) and virtualizes above that. The count is the rows the grid would draw, after filtering, with group headers and open groups. One DOM row per row: keep `false` to a few thousand rows. Ignored for a server source (`DataSource`, `viewportDatasource`), where drawing every row would fetch every row, and for a list too tall for the browser's canvas (past roughly a million rows). Rows only: columns stay virtualized (`overscanX`), so while every row is drawn each sideways scroll step redraws every row. Read when the grid is created: changing `virtualization` on a live grid has no effect. React, plain JS and both Enterprise wrappers.
+- `virtualization.placeholderRows` (default `false`): while the rows are virtualized, the part of the body no drawn row covers yet shows an empty line at every row height instead of a blank surface, until the rows arrive. A background on the rows' spacer: no extra DOM, no measuring, aligned under pinned columns. Colours `--dg-placeholder-row-bg` (default `--dg-surface`) and `--dg-placeholder-row-line` (default `--dg-border`), so every theme and colour scheme matches. The lines follow the standard `rowHeight`; card view keeps the plain surface. The stylesheet of this release is needed.
+- `controller.isRowVirtualized()`, `controller.showsPlaceholderRows()` and `DEFAULT_VIRTUALIZATION_THRESHOLD` (`@kanunilabs/datagrid-core`).
+- `onCopy(info)` and `onCopyError(error, { reason })` (React props, plain JS config; both Enterprise wrappers pass them on), the same names and shapes as PivotGrid's. `onCopy` gets `{ text, html, rows, cols }` once a copy (Ctrl/Cmd+C, a menu Copy, a cut) reached the clipboard; it is not called when `clipboard.sendToClipboard` takes the text. `onCopyError` gets a `GridCopyError` and its `reason`: `'insecure-context'` (plain HTTP and no way to write), `'permission-denied'` (the browser refused), `'empty-selection'` (nothing to copy) or `'unsupported'`. The grid shows nothing itself: tell the user from here. `controller.setCopyCallbacks()`, `copyInfoFromTsv`, `writeCopyEvent`, `writeClipboardFallback`, `writeClipboardSoon` and `gridCopyError` are exported from `@kanunilabs/datagrid-core`, with the `GridCopyInfo`, `GridCopyError`, `GridCopyErrorReason` and `GridCopyCallbacks` types.
+
+## PivotGrid v1.11.11 — November 18, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.11` · `@kanunilabs/pivotgrid@1.6.11` · `@kanunilabs/pivotgrid-react@1.8.11` · `@kanunilabs/pivotgrid-enterprise@1.7.11` · `@kanunilabs/pivotgrid-react-enterprise@1.8.11`
+
+_A large, fully expanded pivot no longer freezes the page, also while rows stream in: results arrive as typed arrays and are processed in short slices, opening or closing one branch computes nothing, expand-all computes once, and live updates are spaced by their cost. A click anywhere on a collapsed group's long label opens the group again._
+
+### Before you upgrade
+
+- `engineResult.rowIndexMap` / `columnIndexMap` are built when first read (same content). Reading them for every cell of a large pivot is slow; use the new `rowIdOf` / `colIdOf` / `nodeIdOf` (or `PivotNode.engineId`). Copy a result with `copyResult`, not an object spread (a spread builds both maps).
+- A closed branch's children can now be in `rowTree` with `isExpanded: false`: always under `'*'`, and outside `'*'` after a close that needed no compute. Read `isExpanded` (or the expanded set), not "has children", to know what is shown. `getCell` for a row inside a closed branch returns its cell, and under `'*'` colour scales and data bars count the cells of closed branches too.
+- A toggle that needs no computation emits `engineCompleted` (in a later task) but calls neither `onBeforePivotCalculate` nor `onAfterPivotCalculate`. With either hook set, opening a never-computed branch runs a full compute as before.
+- A live-update compute over a result already on screen no longer raises the building overlay or `isBuilding`; read `isComputing` for "a newer result is on its way". The progress bar never moves backwards. As the result grows, live updates are computed less often (about 2.5 % of the main thread); `flushAsyncTransactions()` (also with an empty queue), `applyTransaction()`, `setLoading(false)` and an export compute at once.
+- Row-header cells on screen merge by member, not by equal text: two neighbouring members with equal text are two cells. Exports still merge by equal text.
+- Row-header column grips moved (React and plain JS): a collapsed group's spanning label keeps only the grip of its last covered column; the grips of the columns it covers are in the corner (column-header) cells, inside their right edge (left in RTL). Code that looked for `.kanuni-pivot-resize-handle` inside a body cell by position, or counted the grips of a spanning label, now finds one; the corner cells carry one per row-header column.
+
+### Added
+
+- `rowIdOf`, `colIdOf`, `nodeIdOf`, `copyResult` and `PivotNode.engineId` from `@kanunilabs/pivotgrid-core`: look up a cell's engine ids without building the index maps.
+
+### Changed
+
+- A large, fully expanded pivot (expand all, or a saved state with `'*'`) no longer blocks the page: the worker posts the result as typed arrays, and the main thread builds the tree, sorts it (a level of 50k members included) and indexes its cells in tasks of about 24 ms. Both renderers build their rows once per result and splice a branch in or out when it opens or closes. A reply that a newer compute replaced is dropped before it is decoded.
+- Under `'*'`, opening or closing one branch computes nothing (the result keeps the children of closed branches). Outside `'*'`, closing a branch and opening it again computes nothing, and opening a branch whose rows were never computed computes only that branch.
+- `expandAll({ allLevels: true })` computes once: the groups are counted in the worker.
+- Live updates (`applyTransactionAsync`) are spaced by the measured cost of their compute, so a slow feed into a fully expanded pivot keeps the page responsive and is not lengthened by the main thread.
+
+### Fixed
+
+- A collapsed group's label that spans the empty row-header columns (1.11.10) carried a column-width grip on each column's edge inside the label, so a click on most of the label began a column resize instead of opening the group. Only the label's outer edge keeps a grip now (a double-click there still fits the column), and each row-header column has its grip in the corner cell, so a column no row offers a grip for (every group collapsed) can still be resized.
+
+## PivotGrid v1.11.10 — November 17, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.10` · `@kanunilabs/pivotgrid@1.6.10` · `@kanunilabs/pivotgrid-react@1.8.10` · `@kanunilabs/pivotgrid-enterprise@1.7.10` · `@kanunilabs/pivotgrid-react-enterprise@1.8.10`
+
+_A `layout.virtualization` option for long tables: draw every row (`mode: false`, or `'auto'` under a threshold), set how many rows are drawn beyond the view (`overscanY`), or show row-height placeholder lines instead of a blank body while a fast scroll or a jump to the end waits for its rows (`placeholderRows`); and a `precision` field option for exact decimal totals (`precision: 2` sums a `decimal(18,2)` column to 343649.75, not 343649.74999999994); one keyboard focus (Down on a field chip enters the table, a merged row-header cell is one stop), and Ctrl/Cmd+C that works on plain HTTP, copies row headers and tells the app when it fails (`onCopy`, `onCopyError`)._
+
+### Before you upgrade
+
+- Nothing changes unless you set `layout.virtualization`: with no setting the body draws the same rows and the same DOM as in 1.11.9.
+- Nothing changes unless a Values field sets `precision`: without it the engine adds doubles exactly as in 1.11.9, and the cells, totals, display modes, exports and selection statistics hold the same numbers.
+- Down on a field chip inside the table (the Values, Columns and row-field chips) now moves the keyboard focus into the table, to the first row in view: a row field's chip to its own row-header column, any other chip to the first data column. Before, the key started the table's focus frame while the chip kept the real focus. Down on a chip of the filter strip does nothing, as before.
+- Arrow keys over the row headers treat a merged cell as one cell (React and plain JS): a Region drawn once for its three cities is one stop, its first row, not three; Down leaves it from its last row. Code that pressed Down a number of times to reach a given row in a row-header column lands elsewhere now; in the data columns every row is still one step.
+- With `precision` on an `avg` field, the selection statistics now add the cell averages as they are (three cells of 7/3 total 7); in the 1.11.10 preview they were rounded to the field's decimals first (6.99). A `calculateSummaryExpression` field with a `precision` and a display mode (a percentage, a running total) is no longer rounded to that precision: its own result never is.
+- A `precision` that is not an integer 0 to 10 (2.5, 11) is no longer sent to a `serverSource` in the request's Values entries; the browser ignores and reports it, so the server no longer acts on it either.
+- Ctrl/Cmd+C with no cells selected but text selected (in the pivot or on the page) no longer calls `onCopyError` with `'empty-selection'`: the browser copies the text and the pivot keeps out of it.
+- Nothing changes unless you set `--pivot-row-height`: without it no class or variable is added and every density paints the rows it painted in 1.11.9.
+- Keyboard moves in the React grid now bring a row in from below fully into view: PageDown and Down left the focused row under the pane's bottom edge by the height of the chip band above the column headers (about 120px with the Values and Columns zones), so the focus could not be seen. The pinned row-header layout only; plain JS already measured the band.
+- Nothing changes unless you set `--pivot-chip-height`: unset, a chip is as tall as its content with the same 4px vertical padding as in 1.11.9 (the padding is now written as `padding-block`, computing to the same value).
+- Nothing changes unless you set `--pivot-area-border`, `--pivot-area-separator` or `--pivot-area-gap`: each falls back to what its spot painted in 1.11.9 (the zones' edge `--pivot-border` at 60%, the line under the filter strip `--pivot-border`, the strip's 8px).
+- Ctrl/Cmd+C now copies through the browser's copy event, and only while the focus is in the pivot or nowhere: not from a text field, not when the page's own text is selected, not while another component outside the pivot has the focus (before it copied wherever the focus was). It works on a plain-HTTP page, where it did nothing. Besides the tab-separated text it writes an HTML table (`text/html`), so a paste into Excel or Word keeps the cells. A row-header selection copies the row headers (it copied empty lines) and a data selection copies every row, the ones scrolled out of view too (they were empty). A tab or a line break inside a cell becomes a space. To hear about a copy that failed, set `onCopyError`.
+- A click on a continuation row-header cell (the empty cell under a group's value, rows 2 and on of a merged group) no longer expands or collapses the group: the group's own cell and its +/- still do. A row-header selection now covers whole merged cells of its last column: a press on a continuation cell selects its group from the cell with the value, and a range that starts or ends inside a group grows to the group's first and last rows (`onSelectionChange` reports those rows). A click that collapses a group leaves the selection on the group's own row (React and plain JS).
+- Nothing changes unless you set `layout.areaHeaders`: with no setting every zone draws its title row, with the same DOM as in 1.11.9.
+- In the tabular row-header layout, the cell of a collapsed group (any row whose label is not in the last row-header column) now spans to the last row-header column: one `<td>` with `colspan`, its value cut only at the block's end, as the "Total: ..." rows already ran on; the empty cells it covers are no longer drawn in that row, so code that looked up `td[data-r="N"][data-c="2"]` on such a row finds nothing, and the row's `data-c` cell to use is the label's. The covered columns keep their resize grips inside the spanning cell, each on its own column's edge. An open group and the tree layout are unchanged; the column widths and the double-click fit (it does not measure a spanning value) are unchanged (React and plain JS). `onCellPrepared` and a row field's `cellTemplate` are not called for the covered row-header columns of a collapsed row: the label's own call (`columnIndex` = its depth) formats the whole spanning cell, so a `width` or `maxWidth` it sets per column now narrows the spanning cell.
+- Ctrl/Cmd+C goes through the browser's `copy` event, which the pivot answers on `document` in the bubble phase: an app's `copy` listener on `window`, or on `document` added after the grid was created, runs after it, and one that calls `clipboardData.setData` there writes over the pivot's data and wins. Because a copy also writes an HTML table (`text/html`), a single copied cell pastes into Word or Outlook as a 1×1 table, not as plain text (the same in DataGrid 1.10.17); a plain-text paste (Ctrl+Shift+V) gives the text.
+
+### Fixed
+
+- One keyboard focus: a key pressed on a field chip inside the table (Values, Columns, a row field) that the chip did not use, Down first, went on to the table and started its focus frame while the chip kept the real focus; the next arrows then moved the chips and the frame at once, and the frame could stop on an empty row-header cell (React). The table now answers only the keys pressed on itself; a chip, a button, a field or a menu inside it keeps its own (React; plain JS already did). Down on such a chip moves the keyboard focus into the table (see above).
+- The keyboard focus frame never stops on a row-header cell drawn empty: a continuation cell of a merged group is its group's first cell, the empty cells right of a collapsed or subtotal row's label are the label, and Left into a merged cell then Right out of it goes back to the row you came from, as a spreadsheet's merged cell does (React and plain JS). The subtotal label now shows the focus ring when the keyboard is on it; it was invisible there (React).
+- Ctrl/Cmd+C copied nothing on a plain-HTTP page (`http://10.0.x.x`): `navigator.clipboard` exists only on HTTPS and localhost, and the failure was swallowed. The copy now goes through the browser's copy event, which every page has; `navigator.clipboard` is only a fallback for a browser that fires none (React and plain JS).
+- The selection statistics rounded each cell of an `avg` field with a `precision` to that many decimals before adding (three averages of 7/3 totalled 6.99 instead of 7), and a display mode rounded a `calculateSummaryExpression` field with a `precision` (0.4567 read 0.46). Only the cells that are whole units (`sum`, `min`, `max`) are added in units now (React and plain JS).
+- A Ctrl/Cmd+C with no cells selected but text selected with the mouse in the pivot copied the text, yet reported `'empty-selection'` to `onCopyError`; it reports nothing now (React and plain JS).
+- Copying a selection down a long merged row-header group took time quadratic in its rows: each row walked up to its group's start. Group starts are now found once per column (React and plain JS).
+- A keyboard move down (PageDown, Down) in the React grid left the focused row hidden under the pane's bottom edge: the scroll counted only the column-header rows, not the chip band above them. It now measures the header block as drawn, as plain JS does.
+- `serverRequestFor` forwarded an invalid `precision` (2.5, 11) to the server; only a valid one goes now.
+- Ctrl/Cmd+C of selected row-header cells copied empty lines (React; plain JS left a merged cell's other rows empty), and of data cells scrolled out of view, empty values. The copy now reads what the cells show, from the result when a cell is not drawn; a merged row-header cell gives its value on every row it spans, so each line carries its full path for sorting and filtering in a spreadsheet, and a row-header selection that ends on a merged cell copies all its rows. The expand/collapse glyph is not copied.
+- A click on a continuation row-header cell collapsed the group and the selection then fell on another row's cell; a range dragged or Shift-extended from such a cell painted the continuation cells as a bare selection block without the group's value. The cell is now its merged group, as for the keyboard: the focus and the selection go to the group's first cell, the selection covers the whole group with its value painted at the top of one block, and nothing collapses; a double click there toggles nothing either (React and plain JS).
+- A collapsed group's value in the row headers was cut at its own column's width ("REEL TE...") while the row-header columns right of it stayed empty in that row. Its cell now runs over them to the end of the row-header block and the value is cut, by `textOverflow`, only there; an open group stays in its own column, and the rows stay level with the data in the pinned, unpinned and RTL layouts (React and plain JS).
+
+### Added
+
+- `layout.virtualization: { mode?: boolean | 'auto'; threshold?: number; placeholderRows?: boolean; overscanY?: number }` (React and plain JS). `mode` `true` (default) draws the rows in view plus a margin, as before; `false` draws every row at once; `'auto'` draws every row while there are at most `threshold` (default 2000) and a window above that, counting the rows the table shows (subtotal and grand-total rows included), not the source rows. Drawing every row of a large table takes seconds and freezes the page meanwhile, again on every expand, collapse, sort or filter: keep `false` to small tables. `placeholderRows: true` (default `false`) fills the part of the body whose rows are not drawn yet with a line at every row height, in the row headers and the data alike, instead of a blank area; colours `--pivot-placeholder-row-line` (default `--pivot-border`) and `--pivot-placeholder-row-bg` (default transparent). `overscanY` is the number of rows drawn beyond the view, above and below alike, a part-shown row counting as in view; a `threshold` or `overscanY` that is not a finite number of 0 or more is ignored; not set, the margin is the one of before (about 5 rows each side in React, 5 above and 10 below in plain JS). Rows only: past 40 data columns the columns are still drawn in a window, so while every row is drawn each sideways scroll step redraws every row. It can change on a live grid (`setLayout`, a new `layout` prop): the body is redrawn, the data is not recomputed. A view setting and the app's: not saved with the state, and a restored state keeps the grid's current value.
+- `pivotRowVirtualization(layout, rowCount)`, `PIVOT_VIRTUALIZATION_THRESHOLD` and `PLACEHOLDER_ROWS_CLASS` are exported from `@kanunilabs/pivotgrid-core`, and the `PivotVirtualizationOptions` type from `@kanunilabs/pivotgrid-core`, `@kanunilabs/pivotgrid` and `@kanunilabs/pivotgrid-react`.
+- `PivotField.precision` (an integer 0 to 10; React, plain JS and both Enterprise wrappers): the decimal places of a Values field's source values, for exact totals. Thousands of two-decimal values added as doubles can total 343649.74999999994, which a one-decimal format writes as '343.649,7' in `tr-TR` where the decimal total 343649.75 reads '343.649,8'. With `precision: 2` each value is rounded once to two decimals (half away from zero) and the engine adds whole cents, so every cell, subtotal and grand total is the number nearest the decimal result. Applies to `sum`, `avg` (exact sum divided by the count), `min` and `max`; `count`, `distinct` and `custom` are unchanged. The display modes read the exact totals (a running total or a difference is added in the same units, a percentage divides two exact totals), as do the top-N 'Others' row, summary expressions (their own result is not rounded) and the exports, which take the engine's numbers: Excel gets 343649.75 and its number format rounds as the screen does. A row-level `calculateExpression` result is rounded like a source value. Totals are exact while they stay under `Number.MAX_SAFE_INTEGER / 10^precision` (about 90 trillion at 2); past that they are added as doubles, as without the setting, never NaN. Another value (2.5, -1, 11) is ignored and reported through `onError`. With a `serverSource` the browser does not add: each Values entry of the request carries `precision` and the server sums (`rollupInMemory` honours it).
+- The selection statistics (`onSelectionStatsChange`, the footer) add the selected cells in the same units when every selected cell's field has a `precision`, so they agree with the table; a selection with any cell of a field without one adds doubles as before (React and plain JS). `ExactSum`, `precisionScale` and `MAX_PRECISION` are exported from `@kanunilabs/pivotgrid-core`.
+- `onCopy(event)` and `onCopyError(error, { reason })` (React props, plain JS config; both Enterprise wrappers pass them on). `onCopy` gets `{ text, html, rows, cols }` after a Ctrl/Cmd+C wrote the selection. `onCopyError` gets a `PivotCopyError` and its `reason`: `'insecure-context'` (no copy event and no clipboard: plain HTTP), `'permission-denied'` (the browser refused the write), `'empty-selection'` (Ctrl/Cmd+C with the focus in the pivot and nothing selected) or `'unsupported'`. The grid shows nothing itself: tell the user from here. `bindPivotCopy`, `copyPayload`, `cellCopyText`, `pivotOwnsCopy`, `writeCopyEvent`, `writeClipboardFallback` and `pivotCopyError` are exported from `@kanunilabs/pivotgrid-core`, with the `PivotCopyInfo`, `PivotCopyError`, `PivotCopyErrorReason` and `CopyBindingOptions` types.
+- `--pivot-row-height` (any CSS length, 16 to 200px; none by default; React and plain JS): the height of every body, subtotal, grand-total and column-header row, over the `density`. Delphi's 21px rows are `--pivot-row-height: 21px`. The renderers read it (rounded to whole px) and run the virtual window, the spacers, the placeholder lines and the keyboard scrolling on the same number, and the line heights follow it (a `kanuni-pivot-custom-row-height` class and `--pivot-row-h` on the root in plain JS, on the body in React), so the frozen row headers stay level with the data, under CSS zoom too. Read when the grid is created, on a resize and when the root's class, `style` or theme changes. `readPivotRowHeightVar`, `applyPivotRowHeightVar`, `watchPivotRowHeightVar`, `PIVOT_CUSTOM_ROW_HEIGHT_CLASS`, `PIVOT_ROW_HEIGHT_RESOLVED_VAR` and `PIVOT_ROW_HEIGHT_RANGE` are exported from `@kanunilabs/pivotgrid-core`.
+- `--pivot-chip-height` (any CSS length; none by default; React and plain JS): the height of every field chip, in the filter, Values and Columns zones, the row-header corner and the field list (its host carries the root's class). Delphi's ~22px chips are `--pivot-chip-height: 22px`; the vertical padding shrinks around the 12px text. On a touch screen (or with `density: 'touch'`) every chip stays at least 44px tall, with or without its menu, so its 44px grip and buttons stay inside it. The drag ghost, a larger floating label, keeps its size.
+- CSS variables, none defined by default (React and plain JS): `--pivot-area-border` (the edge of the filter, Values and Columns zones; it was `--pivot-border` at 60%, tied to the grid lines' colour), `--pivot-area-separator` (the line under the filter strip, between it and the Values zone; `--pivot-border`) and `--pivot-area-gap` (the space around the filter zone; 8px). With `--pivot-area-bg` and `--pivot-area-header-bg` (1.11.9) the zones can be drawn apart from the grid, as a desktop pivot's light separator is.
+- `cellUnitScale(field)` (the scale a field's finished cells are whole units of: 0 for `avg` and summary expressions) and `rowHeaderCellLookup(rows, headerCols, tree)` (`rowHeaderCellAt` for many cells, each group walked once) are exported from `@kanunilabs/pivotgrid-core`.
+- `pivotFocusMove`, `rowHeaderCellAt`, `rowHeaderGroupLastRow` and `isRowHeaderContinuation` (and the `RowHeaderNavRow` type) are exported from `@kanunilabs/pivotgrid-core`: the keyboard rule over merged row-header cells both renderers use.
+- `rowHeaderSelectionRows(rows, minR, maxR, col, headerCols, tree)` is exported from `@kanunilabs/pivotgrid-core`: the rows a row-header selection covers, grown to whole merged cells of a column.
+- `layout.areaHeaders: { filter?: boolean; data?: boolean; column?: boolean }` (React and plain JS; each `true` by default): `false` leaves that field zone without its title row, the "FILTER AREA", "VALUES" or "COLUMNS" line with its icon, and on the filter strip its collapse button and the count of filtering fields. The chips, the empty zone's hint and the drop target stay where they were and the zone is as tall as its chips; it keeps its name for screen readers (`role="group"` with an `aria-label`). Without the title row the filter strip collapses only through `filterAreaCollapsed`, from the app's own button. Collapsed with `filterAreaCollapsedRows: 0` and no title row, the strip has nothing to show and is not drawn, not even during a drag. A view setting and the app's: not saved with the state, and a restored state keeps the grid's current value. `areaHeaderShown(layout, area)` and `filterStripEmpty(layout)` are exported from `@kanunilabs/pivotgrid-core`.
+- `rowHeaderLabelSpan(row, headerCols, tree)` is exported from `@kanunilabs/pivotgrid-core`: how many row-header columns a row's label cell spans.
+
+## PivotGrid v1.11.9 — November 17, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.9` · `@kanunilabs/pivotgrid@1.6.9` · `@kanunilabs/pivotgrid-react@1.8.9` · `@kanunilabs/pivotgrid-enterprise@1.7.9` · `@kanunilabs/pivotgrid-react-enterprise@1.8.9`
+
+_Ten new theme variables for the selected cell, the zone and corner surfaces, the Grand Total header, the data ground and the field chips, and a `filterPopupSearch` layout option for a filter list without a search box; the filter popup now grows to the edge of the screen and remembers its size, `layout.viewOptionsMenu` lets the app decide which items the View options menu lists, a date field's filter list reads as its headers do, the whole Columns strip over the data columns takes a dropped field, and a blank row or column value reads as the dictionary's `blanks` text in every language ('' allowed)._
+
+### Before you upgrade
+
+- Nothing changes unless you set one of the new variables or `layout.filterPopupSearch`: each variable falls back to the expression its spot used in 1.11.8, so the default look is the same colour for colour.
+- A date field's filter list (React and plain JS) now writes each date as its header does, not as the ISO text the data holds: the field's `format` when it is a date format (`{ day: '2-digit', month: '2-digit', year: 'numeric' }` gives 31.03.2026 in `tr-TR`), the grid's default date text without one, and a month or weekday `groupInterval` by name. Times of one day are one row. The list no longer reads a `format` that is not a date format on a date field (a function, number options): it writes what the header writes (with a month `groupInterval`, 'March', not '3'). Its order, its ticks and the stored filter are still the raw values, so a saved filter keeps working, and the search box finds the text on screen.
+- A date field whose `format` holds date options (`day`, `month`, `year`, `weekday`, `hour`, `dateStyle`...) is now written with them in its row and column headers; before the options were ignored there and the header read the default long date. A field with no such format, a number format, or a `groupInterval` reads as before.
+- The header filter popup can be dragged larger than 350 x 600 px, up to the edge of the visible area; it still opens at 250 x 350 px. Lower the limit with `--pivot-filter-popup-max-height` / `--pivot-filter-popup-max-width` if a taller popup is not wanted.
+- Blank values are now written with the dictionary's `blanks` text in every language: in row and column headers, subtotal labels, the filter list, the pivot's Excel, PDF, print and clipboard headers, chart categories and the drill-down title (React and plain JS). A Turkish grid shows '(Boşlar)' where it showed '(Blank)', a German one '(Leer)', and so on; the English dictionary's `blanks` is now '(Blank)' (it was '(Blanks)'), so an English grid looks as before except where '(Blanks)' was shown: the filter list's rare null row and the Enterprise chart's blank category. To keep the old text in every language, pass `dictionary: { blanks: '(Blank)' }`. `blanks: ''` leaves the header cell empty and the filter list row empty but tickable, named for screen readers by the language's own blanks text. The internal member is still '(Blank)': filters, path keys, saved state, `rowPath` / `colPath` and node values are unchanged, so saved filters open as they were. A row header's `cellTemplate` gets the shown text (the blanks text, a B.95 date format) as both `value` and `displayValue`, in React and plain JS, as it already got the formatted text; a column header's `cellTemplate` gets the raw member ('(Blank)') as `value` and the shown text as `displayValue`. The list export (source rows) and the CSV of raw data are unchanged.
+- The Columns strip over the data columns is a drop target along its whole visible width, not only where the Columns box is drawn (React and plain JS): a field dropped on the strip past the box goes to the END of the Columns area, as the box's own empty end did. Inside the box nothing changed (before or after the nearest chip). The box keeps its look; while a field is dragged into the column area the strip is tinted (`.kanuni-pivot-column-strip[data-drop-over]`, a 7% `--pivot-primary` wash).
+
+### Changed
+
+- The header filter popup's size limit is the visible area (from the popup's position to the screen edge) instead of a fixed 350 px high and 600 px wide; the opening size is unchanged (React and plain JS). The virtual list draws the rows the new height shows.
+- A date field's filter list writes dates as its headers do (see above); a date field's `format` with date options is now used by its headers too (React and plain JS). Charts and exports keep their own date text.
+- Blank row and column values read as the dictionary's `blanks` text, in every language and on every surface that shows them (see above); the English `blanks` text is '(Blank)'. An app's `dictionary.blanks` wins, and '' is allowed: an empty header cell, an empty list row with the language's text as its accessible name; a search does not match that empty row.
+- The whole Columns strip over the data columns takes a dropped field: past the box it goes to the end of the area (see above). The strip cell carries `data-drop-id="column-strip"` and the class `kanuni-pivot-column-strip`; the Columns box keeps `data-drop-id="column"`.
+
+### Fixed
+
+- A column field member `0` or `false` was captioned '(Blank)' in the column header and its subtotal label (a truthiness test); it reads `0` / `false` now (React and plain JS, and the pivot exports).
+
+### Added
+
+- `layout.viewOptionsMenu: { filterArea?: boolean; footer?: boolean }` (default both `true`; React and plain JS): chooses which items the View options menu (right-click on a data cell) lists. `footer: false` leaves out Footer bar, which keeps an app that sets `showFooter: false` from having the user bring it back; `filterArea: false` leaves out Filter area; with both `false` the menu does not open. Items that stay still write `showFooter` / `showFilterArea` into the layout and `onLayoutChange`. A view setting. It is the app's setting, not the reader's: `viewOptionsMenu` and `filterPopupSearch` are not written into `getPersistedState`, `stateStoring` or a saved report, and a restored state (an asynchronous `onLoad`, `applyPersistedState`, a report) keeps the grid's current value, ignoring one an older state may hold. While an item is left out, the reader cannot switch that bar, so a restored state keeps the grid's current `showFooter` (or `showFilterArea`) too; a listed item's saved value is restored as before.
+- `--pivot-filter-popup-max-height` and `--pivot-filter-popup-max-width` (any CSS length, none defined by default): lower how far the header filter popup can be dragged. By default it grows to the edge of the visible area, zoom and on-screen keyboard included.
+- The header filter popup remembers the size a user drags it to, per field, for the life of the page (kept in memory, not stored), and opens at that size next time, fitted to the screen.
+- CSS variables, none defined by default (React and plain JS): `--pivot-cell-selected-bg` and `--pivot-cell-selected-text` (a selected cell), `--pivot-area-bg` and `--pivot-area-header-bg` (the body and the title row of the filter, Values and Columns zones; dialog titles stay on `--pivot-surface-header`), `--pivot-header-total-bg` (the Grand Total column header and the Grand Total label of the grand-total row), `--pivot-corner-bg` (the corner cells over the row headers), `--pivot-cell-bg` (the data cell's own ground, under totals, conditional formats and anything `onCellPrepared` sets), `--pivot-row-area-empty-bg` (the band under the row headers when the rows are few; React), `--pivot-chip-font-size`, and `--pivot-chip-border-light` / `--pivot-chip-border-dark` (a raised chip edge: top and left light, bottom and right dark). Set them on `.kanuni-pivot-root`; the field list and drag ghost host carries the same class. Listed with their defaults on the theming page.
+- `layout.filterPopupSearch` (default `true`; React and plain JS): `false` leaves the search box and the type-ahead out of the header filter popup, for a plain list; Select All, Clear All, the keyboard keys and the grouping of rows by text are unchanged. A view setting.
+- `chartIntegrationOptions.blanksText` (React): what the chart calls a blank category. The grid fills it from its dictionary's `blanks` unless the app sets it; `ChartDataTransformer.transform` reads it, and a transformer of your own receives it.
+- `BLANK_MEMBER` ('(Blank)', the engine's member for a missing value), `isBlankMember(value)` and `blanksTextOf(dictionary)` are exported from `@kanunilabs/pivotgrid-core`; `formatDimensionValue` and `formatHeaderValue` take an optional blanks text as their last argument (omitted, they return what they did before).
+
+## PivotGrid v1.11.8 — November 16, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.8` · `@kanunilabs/pivotgrid@1.6.8` · `@kanunilabs/pivotgrid-react@1.8.8` · `@kanunilabs/pivotgrid-enterprise@1.7.8` · `@kanunilabs/pivotgrid-react-enterprise@1.8.8`
+
+_An opt-in `groupByFormat` for a row or column field: values that show the same formatted text are one row or column, and the header writes that text, as the filter list already does._
+
+### Before you upgrade
+
+- Nothing changes unless a field sets `groupByFormat: true`; without it grouping, headers, sorting, paths and exports are as in 1.11.7.
+- With `groupByFormat: true` a member of that field is its formatted text, not the raw value: `rowPath` / `colPath` in `cellClick`, `getCellRecords`, `expandedPaths`, `sortBySummaryPath`, a node's `value` and a `calculateCustomSort` comparator all receive the text ("18,2"). Code that filters to one member from such a path should pass `controller.memberFilterValues(fieldId, member)` to `applyFilter` instead of `new Set([member])`, since a filter names raw values.
+
+### Added
+
+- `PivotField.groupByFormat` (default `false`; React and plain JS, Community): a number field with a `format` in Rows or Columns is grouped by the text that format writes in the grid's `locale`, the same text its filter list shows. Two-decimal data shown with one decimal (18.21, 18.23, 18.24 as "18,2" in `tr-TR`) is one row whose cells sum every raw value under it; the header, the filter list, exports (Excel, PDF, print, clipboard), charts, `cellClick` records, the drill-down and the selection detail all use that text and that group. Members sort by their smallest raw value, not alphabetically, with blanks last. `-0` and `0` are one member, written as `0` (the filter list of a formatted number field now lists them as one `0` row too; before, Intl wrote a separate `-0`). The field's filter still stores raw values. The option does nothing without a `format`, with a `groupInterval` (which already groups), on a date field, in the Values area, and with a `serverSource` (ignored in the browser; the server groups: your own `serverSource.compute` sees the flag on the field objects, the request `pivotServerSource` sends does not carry it). Each value is formatted once per distinct value on the main thread while the data is encoded, so the worker only sees the texts and a `format` function works. Turning the option on or off on a field drops that field's open branches, as moving it does; a saved state written with the option on reopens its branches while the option stays on.
+- `controller.memberFilterValues(fieldId, member)`: the filter values that keep exactly one member, `new Set([member])` for an ordinary field and every raw value under the text for a field with `groupByFormat`. The plain JS Enterprise chart cross-filter uses it, so clicking the "18,2" bar filters to its raw values.
+- `groupsByFormat(field)`, `groupKeyOf(row, field, locale)` and `formattedGroupKey(value, field, locale)` are exported from `@kanunilabs/pivotgrid-core` for code that matches source rows to such members.
+
+## PivotGrid v1.11.7 — November 16, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.7` · `@kanunilabs/pivotgrid@1.6.7` · `@kanunilabs/pivotgrid-react@1.8.7` · `@kanunilabs/pivotgrid-enterprise@1.7.7` · `@kanunilabs/pivotgrid-react-enterprise@1.8.7`
+
+_A third value for the Values and Columns zones: `layout.areaChipOverflow: 'shrink'` keeps the chips on one line by narrowing them all, and scrolls only when they do not fit even at the floor._
+
+### Before you upgrade
+
+- A filter on a field in the Values area (picked on its chip, or set with `applyFilter` / `filterValues`, also in a saved report) now filters the source rows, so cells and totals change. Before, the table ignored it while the drill-down, exports and charts applied it. A report saved with such a filter therefore shows different, filtered numbers after the upgrade; clear the filter on the chip if the old totals were the intended ones.
+- In the filter list of a number field with a `format`, values that show the same text are now one row (two-decimal data shown with one decimal: "18.2" once, not once per raw value), and the row ticks or unticks every raw value under it. The stored filter is unchanged: it still lists raw values, so a saved filter that names only some of them opens with that row half-ticked (`aria-checked="mixed"`). Code that found a list row by a raw value other than the smallest in its group no longer finds it.
+
+### Changed
+
+- The header and chip filter list (React and plain JS) groups the values of a field by the text it shows: with a number `format`, raw values that round to the same text ("18.21" and "18.24" shown as "18.2") are one row, placed where its smallest value sorts, and ticking it filters all of them. Select All, Clear All and search work on these rows; a row with only some of its values ticked shows a half tick. The filter itself still stores raw values, and fields without a format (text, dates, date groups) list every value as before. A `format` given as a function now labels the list too, as it labels the cells; before, the list built a default number format from it (at most three decimals), so values the cells show apart could share a row.
+
+### Fixed
+
+- A filter on a number field in the Values area did nothing to the table: the chip showed the filter mark, but cells and totals stayed unfiltered, and the drill-down (`getCellRecords`) and exports, which did apply it, disagreed with the table. The filter now filters the source rows before they are summed, wherever the field sits, by its raw value: a blank is not a zero, `-0` is `0`, and `0.1 + 0.2` is not `0.3`. Table, totals, drill-down, exports, charts, live updates and a server source give the same rows. A field moved between the row or column area and Values keeps its filter.
+
+### Added
+
+- `layout.areaChipOverflow: 'shrink'` (React and plain JS): the Values and Columns zones stay on one line, with no scrollbar, and the chips narrow in proportion until they fit. The caption is clipped (no ellipsis, whatever `layout.textOverflow` is) and the chip's tooltip keeps the full name; the sort arrow, the badge and the buttons keep their size. The floor is 56 px (`--pivot-chip-shrink-min`, never under 44 px with touch chips); only when the chips do not fit at the floor does the line scroll sideways. Dragging, the drop mark and touch work as in `'scroll'`. The default (`'wrap'`) is unchanged. A chip at its floor clips its badge and buttons with `overflow: clip` and an 8 px `overflow-clip-margin` for the drop mark beside it; in a browser without `overflow-clip-margin` (Safari, per caniuse; not tried there) that mark can be cut off at the chip's edge.
+
+## PivotGrid v1.11.6 — November 16, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.6` · `@kanunilabs/pivotgrid@1.6.6` · `@kanunilabs/pivotgrid-react@1.8.6` · `@kanunilabs/pivotgrid-enterprise@1.7.6` · `@kanunilabs/pivotgrid-react-enterprise@1.8.6`
+
+_Round 5 of Tekax's requests: the drag ghost above the field list window, a resize guide line that stays under the pointer when the pivot is scrolled or zoomed, a double click on a column edge that fits the column, a text clip setting, font-weight variables, a context menu that ends at the pointer, no focus flash on the first cell; then lines at the end of every row-header group (opt-in), Values and Columns zones on one scrolling line (opt-in), a drop between two row-header chips that lands between them, an unpinned table with its vertical scrollbar at the pivot's edge, data rows kept in view in a short, zoomed pivot, and the focus kept in the pivot after an undo from the data pane._
+
+### Before you upgrade
+
+- The drag ghost of a field is now drawn in the same host in <body> as the field list window and the menus (it was a child of the pivot), above all of them at z-index 100000, and only while a field is dragged. A style that reached it as a descendant of the pivot (`.my-grid .kanuni-pivot-drag-overlay`) no longer matches; the class `kanuni-pivot-drag-overlay` itself is unchanged.
+- The guide line of a column resize follows the pointer when the row headers are unpinned and scrolled sideways, and under CSS `zoom`: the width a drag commits is now what the pointer moved in the pivot's own pixels. Before, at a zoom of 150% a drag of 40 pixels made the column 60 pixels wider. Saved widths are unchanged.
+- A double click on the edge of a column header (the resize grip) now fits that column to what is rendered: the header and the visible cells. It commits through `onColumnWidthsChange` (React) or the controller (`columnWidths`) like a drag. Before, it did nothing. Rows the virtual window has not rendered are not measured.
+- A right-click menu (the row and column header menu, the view-options menu) opened near the bottom of the window now ends at the pointer when it opens upward. Before, it ended up to 107 px above it, because its height was assumed to be 200 px.
+- A mouse click on a cell no longer puts the focus ring on the first cell for an instant before it moves to the clicked one. Focus that arrives with the Tab key still starts at the first cell.
+- With the row headers unpinned (`layout.rowHeaderOverflow: 'unpin'`, or unpinned on their own when they cannot fit) the React grid now scrolls in ONE element both ways: the wrapper that holds the row headers and the data (class `kanuni-pivot-unpinned-scroller`, the parent of `.pivot-right-pane`). Its vertical scrollbar is at the pivot's right edge; before, `.pivot-right-pane` scrolled down by itself and, as wide as its data, put its scrollbar after the last data column. `.pivot-right-pane` no longer scrolls in this mode: code that reads or sets its `scrollTop` must use the wrapper. The scroll saved with `getPersistedState({ include: ['scroll'] })` is the wrapper's in this mode, so its left offset now includes the row headers. Pinned, `'shrink'` and `'scroll'` are unchanged, and so is the plain JS grid (one scroller already).
+- A field dropped on a tabular row-header cell (the space around a row chip above the rows) now goes before or after that cell's field, split at the cell's middle, with the chip's insertion mark. Before, the space between two row chips was the end of the row area: the field became the last row field and no mark showed (in the plain JS grid the cells were not a target at all). The empty end of the last cell still appends, since after the last field is the end.
+- A narrow pivot (768 px or less, the pivot's own width) that is shorter than 480 px now keeps the filter area to 44 px and the Values and Columns areas above the headers to 40 px (60 and 56 px with touch chips), one row of chips each, scrolling inside. Before, a 1100x500 window at 175% left a 240 px pivot no data row in view. A pivot of 480 px or more, and every wider pivot, is unchanged. The wrapper carries `data-pivot-short` while this applies.
+- After `undoLayout()` / `redoLayout()`, when the element that had the focus is still there but no longer takes it (the data pane, which a browser focuses only while it can scroll, after a step that shortened the table), the focus now goes to the grid element; the focus ring then starts at the first cell, as after a Tab. Before, the focus stayed on <body> and the next Ctrl+Y reached nothing.
+- Row-header cells now carry `data-group-start` (the first row of a group, where the value is written) and `data-group-end` (the last row of the group in that column), whether or not `layout.rowHeaderGroupLines` is on. They change no style; a test that compares the cells' markup will see them.
+- With the focus on the grid but on no cell (a click below the last row, on the header band, or on the empty part of an unpinned table), the first arrow, Home, End, PageUp or PageDown key now puts the focus on the first cell, selects it as a plain move would, and is consumed (its default is prevented). Since the mouse no longer focuses the first cell (B.85), these keys did nothing there.
+- `onCellPrepared` gets the plain font weights it always got (600 for a total, 500 for a column header). The cell is then painted with the variable that defaults to that weight (`var(--pivot-font-weight-total, 600)` and its siblings) unless the hook set another value: code that reads a cell's inline `font-weight` back from the DOM sees the `var(...)` text.
+- In the plain JS grid the field list window and the drag ghost now carry the root's view classes and variables (`showSummaryBadge: false`, `showChipRemove: false`, `textOverflow: 'clip'`, the density, `scrollbarStyle: 'native'`, the chip width) and follow a layout change while open. Before, they kept the default look in <body>; the React grid has done this since 1.11.5.
+
+### Added
+
+- `layout.textOverflow` (default `'ellipsis'`, as before): `'clip'` cuts the text of every field chip (the strips, the field list, the drag ghost) and of the row-header values ("Total: ..." included) at the edge instead of ending it with "...". Number cells do not change. In `'clip'` mode a row-header value carries its whole text as a tooltip. React and plain JS.
+- CSS variables for the font weights, each defaulting to the weight used until now: `--pivot-font-weight-chip` (500), `--pivot-font-weight-group` (600, the row-header values that have a level below), `--pivot-font-weight-total` (600, subtotal and total cells and labels), `--pivot-font-weight-grand-total` (700), `--pivot-font-weight-header` (500, the column headers) and `--pivot-font-weight-header-total` (600, the total column headers). Set them on the page or above the pivot; the screen only, the exports do not change.
+- A double click on a column's resize grip fits the column to its content (row-header columns, data columns and column groups). React and plain JS.
+- `layout.rowHeaderGroupLines` (default `false`, as before): a 1px line at the end of every row-header group in every row-header column, also where a group of several rows ends on a continuation cell and between two subtotal rows in a row (where the row-header block drew none). It is the same bottom border a one-row group already has, so no row changes height (measured in Chromium, Firefox and WebKit, pinned, unpinned and tree). With it on, a border `onCellPrepared` gives such a cell is kept. React and plain JS.
+- `layout.areaChipOverflow` (default `'wrap'`, as before): `'scroll'` keeps the Values and Columns zones above the table on one line that scrolls sideways instead of starting a second line. Dragging to the zone's edge scrolls it, and a quick swipe on touch scrolls it. The filter area keeps its own row cap (`filterAreaMaxRows`). React and plain JS.
+
+### Fixed
+
+- The drag ghost went under the field list window (it was drawn at z-index 999 inside the pivot).
+- The guide line of a column resize was not under the pointer when the pivot was scrolled sideways (row headers unpinned): it sat as far left as the scroll offset.
+- Under CSS `zoom` the guide line of a column resize and the committed width were off by the zoom factor (a drag of 40 pixels at 150% made the column 60 pixels wider).
+- The row-header context menu, and the view-options menu, opened near the bottom of the window ended above the pointer instead of at it, because they were placed from an assumed size.
+- A click on a cell flashed the focus ring on the first cell before it moved to the clicked cell.
+- After an undo or redo started with the focus on the data pane (a click on a cell focuses it), the focus fell to <body> in Chrome and Firefox when the step shortened the table, and the next Ctrl+Y did nothing.
+- A field dropped between two row-header chips went to the end of the row area with no insertion mark; it now lands between them.
+- With the row headers unpinned, the vertical scrollbar of a table wider than the pivot was after the last data column, out of view; it is now at the pivot's right edge, and the row headers, the data and the sticky header rows scroll together.
+- In a short, narrow pivot (a zoomed desktop window) the filter area and the Values and Columns areas left no data row in view.
+- Plain JS: the field list window and the drag ghost ignored the chip and view settings (no-summary-badge, no-chip-remove, clip, density, native scrollbars).
+- After a click on no cell, the arrow keys did nothing (since the first-cell focus flash was removed).
+- Unpinned: the spinner and percentage shown while the pivot is prepared sat in the middle of the whole table, out of view after a scroll down; a saved scroll restored before the grid unpinned on its own was lost; a wrapper of height 0 that was still shown drew every row.
+- A short pivot could log a ResizeObserver loop warning when its height came from its content, and showed the full-size header parts for one frame.
+
+## PivotGrid v1.11.5 — November 15, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.5` · `@kanunilabs/pivotgrid@1.6.5` · `@kanunilabs/pivotgrid-react@1.8.5` · `@kanunilabs/pivotgrid-enterprise@1.7.5` · `@kanunilabs/pivotgrid-react-enterprise@1.8.5`
+
+_Chip settings (`showSummaryBadge`, `chipMaxWidth`, `showChipRemove`), a filter area that collapses to its header, row headers that keep their width, a single branch that can be closed after expand-all on a big pivot, a Grand Total heading over measure columns, and the browser's own scrollbars on request. Also: a failed export no longer reports success, an Excel list with readable column widths, exports that say what the grid says for subtotals and grand totals, and two fixes that 1.11.4 did not finish: focus after undo on a big dataset, and the first data row on a phone._
+
+### Before you upgrade
+
+- On a screen 768 px wide or narrower the filter area now stops at 30% of the pivot's height (it was 40% in 1.11.4), and the Values and Columns areas above the headers stop at 88 px and scroll inside themselves. Before, they grew with their chips and, in a 400-450 px pivot, left the first data row below the visible part of the table.
+- `exportData` rejects when nothing was written: a styled format (`pdf`, `excel-list`, `excel-pivot`) with no Enterprise exporter registered, and a format nothing handles. It used to log a notice (or nothing) and resolve. The footer and menu buttons send the error to `onError` as before (an `AbortError` stays silent). The React ref's `exportData` now also rejects after calling `onError`, so an app that awaits it can tell; an app that calls it without `await` and without a `catch` will see an unhandled rejection in that case. `onError` is called and the promise rejects: rely on one of the two, not both.
+- A tooltip with the whole caption now shows on a field chip.
+- After `expandAll({ allLevels: true })` on a pivot of more than 5,000 groups, the entries in `expandedPaths` and `expandedColPaths` that start with U+0001 are closed branches. They are saved with the state (`getPersistedState()`, saved reports) and are opaque: do not parse them. A `serverSource` and a custom exporter are given the sets without them (the `*` entry means everything open), and a json-snapshot export leaves them out.
+- In the plain JS grid a swipe over a field chip now scrolls the capped filter area and the Values and Columns areas (a hold of 200 ms, then a move, still drags), as in React.
+- `undoLayout()` and `redoLayout()` watch the pivot's DOM for 10 seconds (it was 3 seconds, and stopped 100 ms after the result) and give the focus back whenever the focused element is replaced. Focus the reader moves with a click is left alone.
+- The Excel files (`excel-list`, the summary table written by `exportSummaryTable`, and `excel-pivot`) now size each column from its heading and its first 1,000 rows, between 8 and 60 characters wide, reading a date-time or custom decimals from the number format. Before, a list column kept Excel's default width (long headers were cut, amounts could show as ####) and every pivot column was 15 wide. A merged heading does not set a width. A file over the streaming limit (100,000 list rows, 150,000 pivot cells; written as .xls) has no widths, as before.
+- The totals in a file say what the grid says. The grid now passes its dictionary (the locale's words and your `dictionary` overrides) to the controller, and the Excel list, pivot and streaming files, the PDF, print and clipboard take the subtotal and grand-total words from it. A custom `dictionary.subTotal` of 'Toplam' used to appear on screen as 'Toplam: X' and in the Excel file as the locale's 'Alt Toplam: X'; now both say 'Toplam: X'. Print and clipboard, which wrote an English 'Total' and 'Grand Total' in every language, now follow the grid's language (in an English grid a subtotal reads 'Sub Total: A' where it read 'Total: A', so an app that parses the printed or copied text for 'Total:' must change), and the React PDF does too where the PDF font can draw the word (otherwise it keeps the English one, as the plain JS PDF does). A controller used with no renderer has no dictionary: Excel and PDF use the words of its `locale`, print and clipboard keep the English ones.
+- With many row fields on a narrow or zoomed screen the row-header block now lets go of its pin by itself, whatever `layout.rowHeaderOverflow` says: when its columns at the 56 px floor plus 160 px for the data are wider than the pivot (columns x 56 + 160 > the pivot's width), the whole table (headers and data) scrolls sideways as one, each column at its width. Before, the block filled the pivot and the data columns could not be reached. Four row fields in a 358 px phone box now take this path (they were squeezed to 56 px columns); where the block fits nothing changes.
+- The field list window of the React pivot is drawn in `<body>` (it was inside the pivot's box), inside a `.kanuni-pivot-portal-container`. CSS that reached it as a descendant of `.kanuni-pivot-wrapper` no longer matches (a page-wide selector still does). The host carries the pivot root's classes (`striped`, density, `no-summary-badge`, `no-chip-remove`, native scrollbars), its `--pivot-*` variables and its `dir`, so the window looks and reads as before. Every portal host, React and plain JS, now sets `zoom` on itself to cancel a CSS `zoom` on `<body>` or an ancestor, so popups are sized and placed in viewport pixels again.
+- The 768 px limit of B.61 (the filter area at 30% of the pivot's height, the Values and Columns areas at 88 px) follows the pivot's own width now, not the window's: `.kanuni-pivot-wrapper` is a size container (`container-type: inline-size`) and the rules sit in an `@container` query. A pivot narrower than 768 px in a wide window gets the caps (a zoomed-in desktop); a wide pivot in a narrow window no longer does. A browser without container queries (before Chrome 105, Safari 16, Firefox 110) does not apply the caps. Because the width of `.kanuni-pivot-wrapper` is now contained, a wrapper whose width depends on its contents (an inline-block, or an auto-width column or flex item around the pivot) can collapse to 0: give the pivot's container a width, as the 100% the wrapper has by default.
+
+### Added
+
+- `layout.showSummaryBadge` (default `true`): `false` hides the summary-type badge ("Sum") on the value chips. `layout.chipMaxWidth` (default `120`): the widest a chip's caption grows, in px; `'none'` keeps the whole text, `'auto'` sizes to the caption up to 280 px. The whole caption is the chip's tooltip. React and plain JS.
+- `layout.filterAreaCollapsedRows` (default `1`): how many rows of chips the collapsed filter area shows. `0` leaves only its header: the name, how many fields filter, and the button that opens it.
+- `layout.rowHeaderOverflow: 'scroll'` (default `'shrink'`): the row-header columns keep their width instead of being squeezed toward 56 px. React holds the pinned block to 60% of the width and scrolls it sideways inside itself; plain JS unpins the row headers and the whole table scrolls.
+- A single branch can be closed after `expandAll({ allLevels: true })` on a pivot of more than 5,000 groups. The closed branches are saved beside the `'*'` sentinel, with the state, in the layout undo and in saved reports.
+- `layout.showChipRemove` (default `true`): `false` hides the remove (x) button on the field chips of the strips (the field list's remove button and the delete buttons of the calculated-field and pre-filter windows stay); a field still leaves by dragging it to the field list, by Delete on the focused chip or from its menu. The space between a chip's caption and its filter icon is the CSS variable `--pivot-chip-filter-gap` (default `4px`), set on the pivot or above it. React and plain JS.
+- `layout.showGrandTotalHeader` (default `false`): while no field is in the column area, a "Grand Total" heading (`dictionary.grandTotal`) sits above the measure headers. The Excel pivot, PDF, print and clipboard files carry the same row. React and plain JS.
+- `layout.scrollbarStyle` (default `'thin'`, as before): `'native'` gives the browser's own scrollbars back (on Windows the classic wide bar with arrows). The thin styles stand aside instead of being overridden, because Chrome swaps the classic bar for the thin one when any scrollbar property or ::-webkit-scrollbar rule applies. React and plain JS; needs the stylesheet of this release.
+- `layout.rowHeaderOverflow: 'unpin'`: the row headers are never pinned; the whole table scrolls sideways as one, each column at its width. In plain JS, which already scrolls the whole table, `'scroll'` and `'unpin'` do the same.
+
+### Changed
+
+- The corner button of the calculated-field window is named "Close" (it was "Cancel", like the button in its footer), in the React and plain JS windows.
+- The Excel list and pivot files' columns are as wide as their heading and values (8 to 60 characters).
+
+### Fixed
+
+- Focus fell on `<body>` after Ctrl+Z on a big dataset: the cells' pane is swapped when the worker's result is painted, which can be long after the result arrives, and the 1.11.4 helper had stopped watching by then.
+- On a phone (390-412 px wide, a 395-450 px pivot) the first data row sat below the visible part of the table, also with no filter fields.
+- An export with no writer reported success, and so did an unknown export format.
+- The subtotal and grand-total labels in Excel, PDF, print and clipboard ignored the app's `dictionary`: the file said 'Alt Toplam: X' where the screen said 'Toplam: X'.
+- With many row fields on a small or zoomed screen the pinned row headers took the whole width and the data columns sat outside the box with no scrollbar to reach them.
+- Under CSS `zoom` the field list window ran off the screen, and popups placed at pointer coordinates drifted.
+- The filter area cap of B.61 followed the window's width, so a zoomed-in desktop (a 1280 px window with a ~640 px pivot) got no cap and 30 filter chips took the whole pivot.
+
+## PivotGrid v1.11.4 — November 15, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.4` · `@kanunilabs/pivotgrid@1.6.4` · `@kanunilabs/pivotgrid-react@1.8.4` · `@kanunilabs/pivotgrid-enterprise@1.7.4` · `@kanunilabs/pivotgrid-react-enterprise@1.8.4`
+
+_The arrow keys, Home, End, Page Up and Page Down move the selection with the focus, and Shift extends it. Also: the calculated-field window is a real dialog, the Move-to menu opens by touch, undo keeps focus in the pivot, getSummaryTable can return the shown value, and a phone keeps room for data below the filter strip._
+
+### Before you upgrade
+
+- A plain arrow key (or Home, End, Page Up, Page Down) now selects the cell it moves to, so `onSelectionChange`, `onSelectionStatsChange` and the Selection Detail panel follow the keyboard. Before, only the focus ring moved. An app that treated the selection as "what the user clicked" now sees it change on every key press.
+- Ctrl or Cmd with an arrow, Home or End moves only the focus and leaves the selection; add Shift to extend it. Space selects the focused cell (and still sends `onCellClick`).
+- On a screen 768 px wide or narrower the filter area takes at most 40% of the pivot's height and scrolls inside itself, also when `layout.filterAreaMaxRows` asks for more; a smaller cap and `filterAreaCollapsed` work as before. Before, a pivot of 400-500 px with many filter fields could be all filter area. The pivot needs a height of its own (an auto-height pivot is not capped).
+- Adding or deleting a calculated field no longer writes a layout-undo step: `canUndoLayout()` stays as it was and `undoLayout()` does not spend a press on a step that changed nothing on screen. Placing the field in an area is still a step. Deleting a calculated field cannot be undone.
+- `undoLayout()` and `redoLayout()` keep the focus: if it was in the pivot it stays in the pivot, and if it was on the button that asked and the step disabled that button, it moves to the pivot's grid element. An app that moved the focus itself after the call can drop that code; focus that was on `<body>` is left alone.
+- The "Move to" and "Order" menu items open their submenu by touch, and a mouse click on a submenu that hover has just opened keeps it open (before, the click closed it). The plain JS grid also keeps only one of the two open.
+- The calculated-field window closes on Escape and gives the focus back to the button that opened it; it is a dialog now (`role="dialog"`, `aria-modal`, named by its title). A page that listened for Escape itself while the window was open will see it close.
+
+### Changed
+
+- Arrow keys, Home, End, Page Up and Page Down move the selection together with the focus (one cell). With Shift they extend it from the anchor cell, shrink it when reversed and open it to the other side past the anchor. Ctrl or Cmd with these keys moves only the focus; Shift+Ctrl extends. Space selects the focused cell, Shift+Space extends, and Ctrl or Cmd+Space adds a rectangle in the Enterprise grids. Every change sends one `onSelectionChange` and one `onSelectionStatsChange`; React, Enterprise and the plain JS grid agree (the plain JS grid has no `onSelectionChange`).
+- Leaving the data cells for the row headers by keyboard or mouse now clears the selection statistics (`onSelectionStatsChange(null)`); before, the last total stayed.
+
+### Fixed
+
+- After a mouse drag selection the focus is on the cell where the drag ended, so the next arrow key starts there instead of at the cell focused before the drag.
+- The pane scrolls sideways to keep the focused column in view when a pivot has many columns (also with column virtualization, resized columns and right-to-left).
+- Shift across the border between the row headers and the data cells no longer builds a rectangle that holds both.
+- The calculated-field window (React and plain JS, Enterprise) is a dialog: it has a role and a label, Escape closes it, and focus returns to the button that opened it.
+- The "Move to" and "Order" submenus open by touch. A tap used to open them through the mouse events a tap produces and the click that followed closed them again.
+- Adding a calculated field no longer writes an empty step into the layout undo history.
+- After `undoLayout()` and `redoLayout()` the focus is no longer dropped on the page: it stays in the pivot, or on the button that asked.
+- On a phone the filter strip no longer fills the whole pivot: it stops at 40% of the pivot's height and the first data row is in the box.
+
+### Added
+
+- `getSummaryTable(controller, { display: true, locale })` (Enterprise): the value the grid shows, a percent of the grand total for example (97.6, not the raw 400), and a `formatted` text per data field and row. Without the option the result is as before: the raw aggregate.
+
+## PivotGrid v1.11.3 — November 14, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.3` · `@kanunilabs/pivotgrid@1.6.3` · `@kanunilabs/pivotgrid-react@1.8.3` · `@kanunilabs/pivotgrid-enterprise@1.7.3` · `@kanunilabs/pivotgrid-react-enterprise@1.8.3`
+
+_Data import is removed: the grid no longer reads files, and the xlsx dependency is gone._
+
+### Before you upgrade
+
+- Data import is removed. The footer import menu, file drag-and-drop, paste import, the import preview and status dialogs, and the controller methods importFile, importFiles, importFromUrl, importData and importText are gone, with the options onImportData, previewImport and toolbar.showImportFile and the state importStatus and importPreview. Remove them from your code; give the grid its rows through data, setData or applyTransaction.
+- pivotgrid-core no longer depends on xlsx in any form. The Excel reader was the only user of it, and the xlsx releases on npm carry known security flaws (CVE-2023-30533, CVE-2024-22363). Exports are unchanged.
+- A file dropped on the grid is no longer read. To also stop the browser opening it in the tab, prevent dragover and drop on your own container.
+- `onFieldMove` is now asked on every move, not only a drag: the "Move to" menu, the field list (checkbox, "Select all", hide), the chip keys and `changeFieldArea`, `showFields`, `removeField` and `moveField`. A handler written for drags alone now sees these too; `e.cancel()` works on all of them.
+- The field list checkbox puts a field in the area of its definition, else the first of its `allowedAreas`, and only then data for a number and rows otherwise. A hidden field defined in the filter area used to come back as a row or a measure.
+- On a touch screen a finger drags a chip only after a hold (`touchDragDelay`, 200 ms); a finger that moves sooner scrolls the page. Before, a finger on the chip's name dragged after 8 px.
+- A field with `visible: false` is now hidden everywhere: not in the field list, not in an area, not computed as a row, column or value, not exported. It used to show everywhere. A filter on it still applies, and its `area` is kept, so `visible: true` puts it back.
+- On a touch screen a pivot chip no longer shows its filter and remove buttons: one "…" opens the chip menu, which now has "Filter field". In a row header cell there is no "…" either (hold the chip for its menu). With a mouse nothing changes.
+- The footer's "Expand all" button now opens every level at once (`expandAll({ allLevels: true })`); it used to open one more level per click. On a large pivot that is every row and column member: the fully expanded result is computed first.
+- Path keys of a member with an empty text at the first level changed (see Fixed): "|" for that member and "||x" below it, where it used to be "" and "x". Paths as arrays (`cellClick`, `getCell`, the selection) are unaffected. If you stored such keys by hand, rebuild them with `pathKey`.
+- Undo (`undoLayout`) also puts back the open branches and summary sorts that the change being undone dropped.
+
+### Changed
+
+- File, clipboard and drag-and-drop import with its preview and column mapping, in Community and Enterprise, React and plain JS.
+- The xlsx peer dependency.
+- A measure chip names its summary type in the language of the grid ("Toplam", "Ortalama" with `locale="tr"`) instead of the raw `SUM`; a `custom` summary shows no badge. In Turkish, Min and Max now read "En küçük" and "En büyük" everywhere.
+- `setFields` from the app now defines the fields: the captions, groups and visibility it passes are what saved states are compared with, and the areas are where the field list puts a field back. Before, only the first definition counted, so translated captions were saved as the reader's and an old language came back after a reload. The grid's own calls pass `setFields(fields, { definition: false })`.
+- `expandAll({ allLevels: true })` opens everything with the `'*'` sentinel above 5,000 groups or when the full computation fails (reported through `onError`); then a single branch cannot be closed. Only groups are stored, not leaves.
+- With a controlled `fields` prop, a split field group is reported once through `onFieldsChange` as joined.
+- In a tabular export with `totalsPosition: 'top'`, the subtotal row keeps the group's name and reads "Total: <group>" in the next column.
+- `clearLayoutHistory()` is also on the React ref and the plain JS grid; it and the undo flags now notify listeners, and a step updates the fields and the flags together.
+
+### Added
+
+- `getState().isComputing` and the `onComputingChange(computing)` option and prop: whether a change is still being computed, so `engineResult` is not yet current.
+- `getState().noData`: the grid has no rows to show and none are queued.
+- Every footer button, and the saved-view row actions, has an `aria-label` in the language of the grid.
+- `allowedAreas` on a field: the areas it may sit in. Dragging shows "not allowed" over the others and refuses the drop, "Move to" disables them, and the field list and the API keep to them. `controller.canMoveFieldTo(id, area)` and `controller.getFieldHomeArea(id)` answer for your own controls.
+- `touchDragDelay` (React and plain JS): how long a finger holds a chip before it drags. `touchChipTap` (React): what a tap on a chip does, `'sort'` (default), `'menu'` or `'none'`. Holding a chip still opens its menu, also on iPhone and iPad.
+- While dragging a field, the field list, its boxes, the area strips and the pivot body scroll at their edges; the page around the grid does not.
+- `fieldChooserMode="panel"` (React): the field list opens beside the pivot instead of over it. The pivot stays usable, and fields drag both ways between the list and the pivot. The width is `--pivot-chooser-panel-width`; at 768 px or narrower the full-screen list opens instead.
+- `layout.filterAreaMaxRows`: the filter area grows to at most that many rows of chips, then scrolls inside itself (React also while a field is dragged at its edge). A button in the filter area collapses it to one row and shows how many of its fields filter; that is `layout.filterAreaCollapsed`, saved with the layout. Neither re-runs the pivot.
+- `layout.showTotalsForSingleValues: false` leaves out the subtotal of an expanded group with a single child, as a row and as a column, on screen and in every export. `layout.showGrandTotalsForSingleValues: false` leaves out an axis's grand total when its top level has a single member. Both default to `true`.
+- `expandAll({ allLevels: true })` on the controller and the React ref opens every row and column level in one call; each group is opened by its own path, so a branch can still be closed on its own. A plain `expandAll()` still opens one more level.
+- A `loading` option (React prop, plain JS config, controller option) and `setLoading(loading)` (controller, plain JS grid): while the application is still fetching the rows, a grid with no result shows its loader instead of the "no data" text, so `data={[]}` filled by `applyTransactionAsync` no longer flashes the empty text before the first chunk. A result already shown stays; `getState().noData` is false while loading; `exportData` does not wait for it.
+- `getPersistedState()` now keeps a field's `caption`, `group`, `groupIndex` and `visible` where they differ from the app's definition; `applyPersistedState`, `stateStoring` and `mergePersistedState` (layout part) put them back. A snapshot without them returns the field to its definition, so a caption the app translates later is not frozen by an old snapshot.
+- `controller.setFieldRepair(repair)`: a function run inside every change of the fields, before it is stored and reported. The Enterprise grids pass `keepFieldGroups` through it.
+- Layout undo and redo: `undoLayout()`, `redoLayout()`, `canUndoLayout()` and `canRedoLayout()` on the controller, the React ref and the plain JS grid, and `getState().canUndoLayout` / `canRedoLayout`. A step is a change of where fields sit, their order, whether they are shown, their caption or group; filters, sorting and summaries are not steps and undo leaves them. The last 20 steps are kept; `setFields` counts as a step, `applyPersistedState` and loading a report start over, `clearLayoutHistory()` empties it. No keyboard shortcut is bound.
+
+### Fixed
+
+- With no rows (`data={[]}`, or an empty `applyTransactionAsync` batch) the React grid showed "Loading..." forever. Both renderers now show the `emptyData` text, which the dictionary can change.
+- An export asked for while a filter or field change was still computing could write the previous result. `exportData` now waits for the change, in every format, with no time limit; it rejects with an `AbortError` if the grid is destroyed while it waits, which the footer and the React ref ignore.
+- A filter changed in the same moment as the field layout (moving a field, then filtering) dropped the layout change.
+- A dragged field landed where the drag overlay touched, not where the pointer was: 3 px of a chip in another area took the drop. The target is now what is under the pointer, and the insertion mark and the drop always agree (the mark could show the previous target).
+- Dragging from the field list onto a chip or the empty part of an area box went nowhere or to another box, and the pivot under the list still took drops. Dropping a field on the "All Fields" list did not hide it.
+- With fields in the row area, the empty part of the row header cells was no drop target; it is now the end of the row area.
+- Dragging from the field list showed “Field” instead of the field's name, and the source chip travelled with the drag instead of staying in place.
+- Drag announcements for screen readers read internal ids in English; they now say the field's caption and the area in the language of the grid.
+- The field list's drag handle is a 44 px target on touch screens.
+- On a phone the field list and its four boxes could not be scrolled: only the first screen of "All Fields" was reachable. The list now scrolls by finger, down to the Values box.
+- On a touch screen the chips in a narrow row header showed no name, their invisible buttons took the taps (a tap opened the filter, the right edge removed the field), and on a phone they were narrower than 44 px.
+- On a phone the chip menu could open below the bottom of the screen. Every pivot menu and the header filter now open inside the visible part of the window, upward when there is no room below.
+- The Field Settings dialog was wider than a 360–390 px phone screen.
+- Another element of the page going full screen (a video, a chart) turned the React pivot into its full-screen look on top of it.
+- The floating field list no longer jumps to the centre right after it opens.
+- Subtotal rows in every export (Excel, PDF, CSV, print, clipboard) carried the numbers of the level above them — for a top-level group, the grand total — and in the tabular layout had no label. They now carry their group's numbers and read "Total: <group>" as on screen.
+- With field groups (Enterprise), moving one member made `onFieldsChange` fire twice, first with the group split, then joined. The group is now joined inside the same change, so it fires once.
+- A field group could be pulled into an area one of its members' `allowedAreas` forbids. The move is now refused for the whole group: `canMoveFieldTo` says no for every member, menus and drag targets follow it, and a `setFields` that splits the group there is joined back where the other members are.
+- A click in the middle of a field chip in a row header cell opened its filter or removed the field instead of sorting it: the chip fills the cell, and its filter and remove buttons, invisible until hovered, sat right after the caption. They now sit at the chip's end, and the rest of the chip sorts (both renderers).
+- A drop in the middle of a wide chip landed on the other side from the insertion mark (React): the last intent was worked out after the mark had been reset.
+- A field drop waiting on an asynchronous `onFieldMove` overwrote any change made meanwhile; it now applies to the fields as they are when the answer comes. A rejected `onFieldMove` goes to `onError` and the drag always ends; it used to leave an unhandled rejection in plain JS.
+- Each plain JS field menu left a window listener behind until the next resize.
+- "Move to" enabled an area another member of the field group may not go to, and clicking it did nothing; both renderers now ask `canMoveFieldTo`.
+- On a touch screen, a long press whose touch the browser cancelled ate the next tap.
+- Plain JS: `fieldChooserMode` now warns that it is React only.
+- A member whose text is empty at the first level of rows or columns had the pivot's own key, and the members under it lost a part: its children were keyed like another member's ("12.5" for ["", "12.5"], the key of ["12.5"]). Opening one branch could open the other, and a sort by that column used the grand total. Such a path now has its own key (a leading separator: "|", "||x"); every other key is unchanged. `pathKey(parts)` and `pathParts(key)` build and read keys; use them instead of `join('|')` and `split('|')`. This is also why a check on a saved state could not count a key's levels: with the old keys an empty first member made a path look one member shorter. Keys now have one part per level. The scheme assumes member values do not start with or contain "|"; such a value can still share a key with another member, as before.
+- Open branches (`expandedPaths`, `expandedColPaths`) and summary sorts were kept after a field change made them meaningless: with rows [Code, BuyPrice] and "A|12.5" open, moving BuyPrice to the filter area left the path and the sort in the grid and in `getPersistedState()`. A path now stays while the leading fields it was built from are unchanged and goes otherwise, in the same update, for a drag, the menu, the field list, hiding or deleting, `setFields`, a controlled `fields`, undo and redo; a summary sort goes with the fields it names. A state loaded from an older version loses the paths with more members than their axis has fields. `'*'` is never dropped.
+- React: a field dragged to its target in one move and released there (no settling move) moved nothing, in Chrome, Firefox and WebKit. The drop read the pointer and the droppables from a collision run that dnd-kit had not made yet; it now reads the browser's own pointer events and the droppables as they are. The plain JS grid was not affected.
+
+## DataGrid v1.10.16 — November 15, 2026
+
+`@kanunilabs/datagrid-core@1.10.16` · `@kanunilabs/datagrid@1.9.16` · `@kanunilabs/datagrid-react@1.8.16` · `@kanunilabs/datagrid-enterprise@1.10.16` · `@kanunilabs/datagrid-react-enterprise@1.9.16`
+
+_The browser's own scrollbars on request (`scrollbarStyle: 'native'`)._
+
+### Added
+
+- `scrollbarStyle` (default `'thin'`, as before): `'native'` puts `kanuni-datagrid-native-scrollbar` on the grid and the themed thin scrollbar styles stand aside, so the browser draws its own (on Windows the classic wide bar with arrows). An unthemed grid already used the browser's. React, plain JS and both Enterprise wrappers; the stylesheet of this release is needed.
+
+## DataGrid v1.10.15 — November 14, 2026
+
+`@kanunilabs/datagrid-core@1.10.15` · `@kanunilabs/datagrid@1.9.15` · `@kanunilabs/datagrid-react@1.8.15` · `@kanunilabs/datagrid-enterprise@1.10.15` · `@kanunilabs/datagrid-react-enterprise@1.9.15`
+
+_The import wizard and the CSV import helpers are removed; the grid no longer reads files._
+
+### Before you upgrade
+
+- The Enterprise import wizard is removed: openImportWizard, EnterpriseGridApi.openImportWizard, the onImport option and GridImportWizard in React. The helpers importCsv, parseCsv, sniffDelimiter, autoMapColumns, buildImportPlan and applyImportMapping are removed from datagrid-core and datagrid-react. Clipboard copy and paste into cells, fill and editing are unchanged.
+
+### Changed
+
+- The import wizard (file, column mapping, commit) and the CSV import helpers.
+
 ## PivotGrid v1.11.2 — November 14, 2026
 
 `@kanunilabs/pivotgrid-core@1.11.2` · `@kanunilabs/pivotgrid@1.6.2` · `@kanunilabs/pivotgrid-react@1.8.2` · `@kanunilabs/pivotgrid-enterprise@1.7.2` · `@kanunilabs/pivotgrid-react-enterprise@1.8.2`
