@@ -10,6 +10,62 @@ PivotGrid and DataGrid are versioned independently, so entries name the
 component they belong to. Entries before August 2026 predate DataGrid and are
 PivotGrid releases.
 
+## PivotGrid v1.11.18 — November 25, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.18` · `@kanunilabs/pivotgrid@1.6.18` · `@kanunilabs/pivotgrid-react@1.8.18` · `@kanunilabs/pivotgrid-enterprise@1.7.18` · `@kanunilabs/pivotgrid-react-enterprise@1.8.18`
+
+_One field in two roles (raw values in the filter, row and column areas, a summary formula in Values), fixed text before or after a number that reaches Excel as a number format, and very large pivots: the previous result is released before a full rebuild, so adding a field to an open tree of millions of rows holds one tree in memory instead of two._
+
+### Before you upgrade
+
+- A field with a `dataField` and a `calculateSummaryExpression` but without `isCalculated` now shows the formula result in Values. Before, the formula was ignored and the cell showed the plain `summaryType` of the raw values. If the helper fields the formula reads are not in Values, the cells are empty. Remove the formula from such a field if you relied on the plain aggregate.
+- `prefix` and `suffix` on a number format object are now written without `isCustom: true`; before, they were ignored unless `isCustom` was set. They also reach PDF, print, chart tooltips, `getSummaryTable({ display: true })` and the Excel number format.
+- A calculated field whose formulas are functions (no `formulaString`) no longer offers "Edit calculation" or a delete button: the designer can only read back a formula text. Fields made in the designer are unchanged.
+- The selection statistics write Sum, Average, Min and Max with the field's `prefix` / `suffix` when every selected cell belongs to one value field. Count and a selection across several fields stay bare.
+- `setFields` replacing or removing a `calculateExpression` or `calculateSummaryExpression` now recomputes at once. A function formula is recognised by its source text: two functions with the same source that read different outside values count as one formula.
+- A field with a row calculation and a summary formula now lists its real blank member in the header filter and is accepted as a row or column by the AI layout schema.
+- Excel export: the text of a number format (prefix, suffix, any quoted literal) now counts toward the column width, so such columns come out wider.
+- React and plain JS Enterprise: when the shown result has 500,000 row nodes or more, a full rebuild (field added, moved or removed, filter, new data, sort, display mode, top N, value or label filter, search, expand or collapse all) releases the old result before the new one arrives. The rows on screen stay drawn; rows scrolled to in the meantime show "…" until the new result is in. Smaller results behave as before.
+- `ExportStreamController#streamToExcelXML` is deprecated; call the `streamToExcelXML()` function exported by `@kanunilabs/pivotgrid-core`. The method still works.
+
+### Added
+
+- One field, two roles: a field with a `dataField` (or a row-level `calculateExpression`) and a `calculateSummaryExpression`. In the filter, row or column area it works on the raw values (header filter, members, sorting, grouping); in Values the cell, the subtotals and the grand total show the formula, for example `[Amount] / [Qty]` over two `helper` fields for a weighted average price. One entry in the field list; dragging, the menu's "Move to", `allowedAreas`, the saved state and the exports carry both roles, and `getRecordsForCells` and the selection statistics read the formula result. React and plain JS. See "One field, two roles" in the calculated fields guide.
+- `prefix` and `suffix` on a number format object (`PivotNumberFormat`): fixed text before or after the formatted number, for example `{ minimumFractionDigits: 2, maximumFractionDigits: 2, suffix: ' ₺' }` writes "1.234,50 ₺" in `tr-TR`. The text is written as given (put the space in it), can be any text, and can be changed at run time with `setFields`. Excel gets a number cell whose number format carries the text (`#,##0.00" ₺"`); cells, the header filter list, chart tooltips, `getSummaryTable({ display: true })`, PDF, print and CSV write the same text. A prefix goes after the minus sign. Give the fraction digits: without them Excel uses its General format, which has no grouping and writes very large numbers in scientific notation.
+
+### Fixed
+
+- Very large pivots (React, and plain JS Enterprise): adding a row field to an open tree built the new tree while the old one was still held, so the step needed room for two. The old result is now released first and the heap holds one tree during the rebuild. Measured in Chrome on 2 million rows, a field added to a fully open tree completes in every run. A tree that does not fit the browser's heap on its own still runs the tab out of memory: after a second added field (12 million row nodes) one of our two test setups completed and the other did not.
+- Loading a report saved fully expanded while its rows stream in no longer peaks above "Expand all": the last intermediate result of the feed is released when the feed ends. Measured in Chrome on 2 million rows, the tab peaked at 3,867 MB against 4,213 MB for "Expand all" in the same session.
+- Reopening a report saved after "Collapse all" while its rows stream in: the worker scanned every group on each live update to find the closed ones, and warmed its subtree index after every batch. It now keeps the open and closed flags between updates and looks only at the groups that arrived since. Measured in Chrome on 2 million rows, the worker's time in that scan fell from 27 s to 1 s and the grid settles within 0.3 s of the last batch instead of up to 4 s; the total load time is set by the feed and did not change.
+- `setFields` replacing a summary formula kept the old result after the first change, and removing a formula kept the formula result until the field was moved.
+- PDF and print kept the old text after a number format was changed with `setFields`: the export formatter was cached by field id.
+- The header filter of a calculated field dropped the blank member when the row calculation returned no value for some rows.
+- Excel export: a negative number with a long text in its number format showed as "#####" because the column width ignored the text.
+
+## PivotGrid v1.11.17 — November 23, 2026
+
+`@kanunilabs/pivotgrid-core@1.11.17` · `@kanunilabs/pivotgrid@1.6.17` · `@kanunilabs/pivotgrid-react@1.8.17` · `@kanunilabs/pivotgrid-enterprise@1.7.17` · `@kanunilabs/pivotgrid-react-enterprise@1.8.17`
+
+_Very large pivots in React: memory is released after "Collapse all" and after a field is added, `maxLiveOpenNodes` now works for a feed that starts from empty data, and reopening a large collapsed state while rows stream in no longer redoes the whole closed list on every update._
+
+### Before you upgrade
+
+- Nothing to change. `maxLiveOpenNodes` (on by default since 1.11.16) now also holds live computes back while the loading state of a fresh data set is still up, which is the usual case when a report is loaded by a feed; before, it only worked once a result was already on screen. The first result of a data set is always built, and the full result is built when the feed ends, as documented. Pass `maxLiveOpenNodes={0}` to turn it off.
+- `--pivot-row-chip-gap` is new and unset by default (16 px, the look of 1.11.16).
+
+### Added
+
+- `--pivot-row-chip-gap` (CSS variable, default 16 px): the space between two row-field chips above the row headers in the default `'aligned'` look. Each chip stays over its own column; set a smaller value (for example `4px`) to tighten the gaps. React and plain JS. See the theming guide.
+
+### Fixed
+
+- React: the grid kept the previous result in memory after a new one arrived when no chart was attached, so the heap did not fall after the node menu's "Collapse all" and stayed one tree too high after loading a fully expanded report. Measured in Chrome on 2 million rows (8 million nodes): the heap after "Collapse all" is at the level of a collapsed report (709 MB against 662 MB), and loading a fully expanded report peaks where "Expand all" does.
+- React: after a row field was added to an open tree, the old tree was never released (a resize observer of the body kept the render that created it). Adding a second field could run the tab out of memory. The heap now holds one tree after each change.
+- `maxLiveOpenNodes` did not hold anything back in a feed that starts from empty data: the loading state never ended during the feed, and the hold-back required a finished result on screen. Every intermediate tree was built. Now none over the limit is built during the feed, and one full result is built when it ends.
+- Reopening a state with a large number of closed groups and then streaming the rows in matched the whole list of closed groups again on every live update and saved the same state after each one. In Chrome on 1 million rows the same load took 275 s with 541 saves before and 182 s with none now (main thread busy 213 s before, 47 s now). The cost still grows faster than the row count, so on several million rows this step stays the slowest way to load a report.
+- `layout.rowFieldChips: 'packed'`: a field dropped in the gap between two chips went to the end of the row fields instead of between them, and no place marker showed when dragging over the empty part under the chips. Both now behave as in the default look. React and plain JS.
+
 ## PivotGrid v1.11.16 — November 23, 2026
 
 `@kanunilabs/pivotgrid-core@1.11.16` · `@kanunilabs/pivotgrid@1.6.16` · `@kanunilabs/pivotgrid-react@1.8.16` · `@kanunilabs/pivotgrid-enterprise@1.7.16` · `@kanunilabs/pivotgrid-react-enterprise@1.8.16`
